@@ -14,6 +14,14 @@ from .console import CONSOLE
 from .execute import run_command
 
 
+def list_subdirectories(path: Path, recursive: bool = False) -> List[Path]:
+    if recursive:
+        return [Path(info[0]) for info in os.walk(path)]
+    else:
+        paths = [Path(str(p)) for p in os.scandir(path)]
+        return [f.path for f in paths if f.is_dir()]
+
+
 def find_rar(directory: Path) -> Optional[Path]:
     files = os.listdir(directory)
     files = [directory / f for f in files if f.endswith('.rar')]

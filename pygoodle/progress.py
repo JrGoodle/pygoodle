@@ -61,18 +61,16 @@ class Progress(object):
         self.stop()
 
     def add_task(self, identifier: Any, total: int, units: str, start: bool = True) -> None:
-        with self._lock:
-            task_id = self._progress.add_task(str(identifier), total=total, units=units, start=start)
-            self._add_task_id(identifier, task_id)
+        task_id = self._progress.add_task(str(identifier), total=total, units=units, start=start)
+        self._add_task_id(identifier, task_id)
 
     def add_subtask(self, identifier: Any, total: int, units: str, start: bool = True) -> None:
+        task_id = self._progress.add_task(str(identifier), total=total, units=units, start=start)
+        self._add_subtask_id(identifier, task_id)
+        count = len(self._progress.tasks)
+        if count <= 1:
+            return
         with self._lock:
-            task_id = self._progress.add_task(str(identifier), total=total, units=units, start=start)
-            self._add_subtask_id(identifier, task_id)
-
-            count = len(self._progress.tasks)
-            if count <= 1:
-                return
             self._delete_line_count = max(self._delete_line_count, count - 1)
 
     def clear_lines(self) -> None:
@@ -81,11 +79,13 @@ class Progress(object):
 
     def complete_task(self, identifier: Any) -> None:
         task_id = self._get_task_id(identifier)
-        self._progress.update(task_id, completed=True)
+        task = self._progress.tasks[task_id]
+        self._progress.update(task_id, completed=task.total)
 
     def complete_subtask(self, identifier: Any) -> None:
         task_id = self._get_subtask_id(identifier)
-        self._progress.update(task_id, completed=True, visible=False)
+        # task = self._progress.tasks[task_id]
+        # self._progress.update(task_id, completed=task.total, visible=False)
         self._progress.remove_task(task_id)
 
     def start(self) -> None:
@@ -118,7 +118,9 @@ class Progress(object):
         return self._subtask_ids[str(identifier)]
 
     def _add_task_id(self, identifier: Any, task_id: TaskID) -> None:
-        self._task_ids[str(identifier)] = task_id
+        with self._lock:
+            self._task_ids[str(identifier)] = task_id
 
     def _add_subtask_id(self, identifier: Any, task_id: TaskID) -> None:
-        self._subtask_ids[str(identifier)] = task_id
+        with self._lock:
+            self._subtask_ids[str(identifier)] = task_id
