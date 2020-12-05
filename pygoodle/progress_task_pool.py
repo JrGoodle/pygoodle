@@ -1,4 +1,4 @@
-"""pygoodle ftp utilities
+"""ftp utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -6,9 +6,9 @@
 
 from typing import Any, List, Optional
 
-from pygoodle.util.console import CONSOLE, Console
-from pygoodle.util.progress import Progress
-from pygoodle.util.task_pool import Task, TaskPool
+from .console import CONSOLE, Console
+from .progress import Progress
+from .task_pool import Task, TaskPool
 
 
 class ProgressTask(Task):

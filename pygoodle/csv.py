@@ -1,4 +1,4 @@
-"""Cache utilities
+"""csv utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 

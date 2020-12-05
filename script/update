@@ -9,5 +9,4 @@ run "${PWD}/script/setup"
 
 . 'script/import.sh'
 
-h3 'Install pygoodle at user level'
-run pip install --user -e .
+# Customize

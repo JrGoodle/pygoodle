@@ -1,4 +1,4 @@
-"""pygoodle ftp utilities
+"""ftp utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -10,10 +10,9 @@ from typing import Callable, List, Generator
 
 from resource_pool import LazyPool
 
-from pygoodle.environment import ENVIRONMENT
-from pygoodle.model import FileType, FileWrapper
-from pygoodle.util.console import CONSOLE
-from pygoodle.util.progress_task_pool import ProgressTask, ProgressTaskPool
+from .model import FileType, FileWrapper
+from .console import CONSOLE
+from .progress_task_pool import ProgressTask, ProgressTaskPool
 
 from .console import disable_output
 from .file_utils import make_dir, replace_path_prefix
@@ -89,11 +88,10 @@ class DirectoryInfo(object):
 
 class FTP(object):
 
-    files_dir: Path = Path('/files')
-
-    def __init__(self, download_dir: Path = ENVIRONMENT.new_dir, pool_size: int = 1):
+    def __init__(self, download_dir: Path, base_dir: Path = Path('/'), pool_size: int = 1):
         self.download_dir: Path = download_dir
         self.pool_size: int = pool_size
+        self.base_dir = base_dir
         self._ftp_pool: LazyPool[ftplib.FTP] = LazyPool(factory=_make_ftp, pool_size=pool_size)
 
     def __enter__(self):
@@ -143,7 +141,9 @@ class FTP(object):
         elif file_type is FileType.FILE:
             return FileWrapper(path.name, self._get_file_size(path), file_type)
 
-    def list_dir(self, directory: Path = files_dir) -> List[Path]:
+    def list_dir(self, directory: Path) -> List[Path]:
+        if not directory.is_absolute():
+            directory = self.base_dir / directory
         # FIXME: Filter *.meta files
         # TODO: Use ssh to ask rutorrent for unfinished downloads
         with self.reserve_ftp() as ftp:
@@ -176,7 +176,7 @@ class FTP(object):
         return size
 
     def _get_download_path(self, path: Path) -> Path:
-        return replace_path_prefix(path, self.files_dir, self.download_dir)
+        return replace_path_prefix(path, self.base_dir, self.download_dir)
 
     def _get_file_size(self, file: Path) -> int:
         with self.reserve_ftp() as ftp:

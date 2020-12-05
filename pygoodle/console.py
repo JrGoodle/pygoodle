@@ -1,4 +1,4 @@
-"""Clowder console utilities
+"""console utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -32,7 +32,7 @@ def disable_output(func):
 
 
 class Console:
-    """clowder console class"""
+    """Console class"""
 
     def __init__(self):
         self.print_output: bool = True

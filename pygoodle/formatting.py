@@ -1,4 +1,4 @@
-"""pygoodle formatting utilities
+"""formatting utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -101,6 +101,10 @@ class Format(object):
     @classmethod
     def gnu_size(cls, size: int) -> str:
         return humanize.naturalsize(size, gnu=True)
+
+    @classmethod
+    def path(cls, path: Path) -> str:
+        return Format.cyan(str(path))
 
 
 FORMAT: Format = Format()

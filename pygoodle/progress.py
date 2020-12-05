@@ -1,4 +1,4 @@
-"""pygoodle progress utilities
+"""progress utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -11,8 +11,8 @@ from rich.console import Console
 from rich.progress import TaskID, BarColumn, ProgressColumn, Task
 from rich.progress import Progress as RichProgress
 
-from pygoodle.util.formatting import FORMAT
-from pygoodle.util.console import CONSOLE
+from .formatting import FORMAT
+from .console import CONSOLE
 
 
 class DownloadProgressColumn(ProgressColumn):

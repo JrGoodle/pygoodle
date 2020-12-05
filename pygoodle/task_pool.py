@@ -1,4 +1,4 @@
-"""pygoodle ftp utilities
+"""ftp utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 

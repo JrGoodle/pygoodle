@@ -1,4 +1,4 @@
-"""pygoodle cli utilities
+"""cli utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 

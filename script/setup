@@ -17,5 +17,3 @@ h3 'Update pipenv'
 run pip install --user --upgrade pipenv
 h3 'Update pipenv dependencies'
 run pipenv install --dev
-h3 'Install pygoodle in editable mode'
-run pipenv run pip install -e .

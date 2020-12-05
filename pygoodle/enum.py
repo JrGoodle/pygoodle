@@ -1,4 +1,4 @@
-"""pygoodle enum utilities
+"""enum utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 

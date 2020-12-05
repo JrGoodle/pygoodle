@@ -1,4 +1,4 @@
-"""pygoodle ssh utilities
+"""ssh utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -7,8 +7,6 @@
 # import base64
 
 import paramiko
-
-from pygoodle.environment import ENVIRONMENT
 
 
 class SecureShellCompletedProcess(object):
@@ -21,13 +19,11 @@ class SecureShellCompletedProcess(object):
 
 class SecureShell(object):
 
-    def __init__(self):
+    def __init__(self, url: str, user: str, password: str):
         # key = paramiko.RSAKey(data=str(base64.b64decode(b'AAA...')))
         self._client = paramiko.SSHClient()
         # client.get_host_keys().add(ENVIRONMENT.pygoodle_url, 'ssh-rsa', key)
-        self._client.connect(ENVIRONMENT.pygoodle_url,
-                             username=ENVIRONMENT.pygoodle_user,
-                             password=ENVIRONMENT.pygoodle_password)
+        self._client.connect(url, username=user, password=password)
 
     def __enter__(self):
         return self
