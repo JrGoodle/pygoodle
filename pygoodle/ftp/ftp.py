@@ -10,12 +10,12 @@ from typing import Callable, List, Generator
 
 from resource_pool import LazyPool
 
-from .model import FileType, FileWrapper
-from .console import CONSOLE
-from .progress_task_pool import ProgressTask, ProgressTaskPool
+from pygoodle.file_utils import make_dir, replace_path_prefix
+from pygoodle.progress_task_pool import ProgressTask, ProgressTaskPool
+from pygoodle.console import CONSOLE, disable_output
 
-from .console import disable_output
-from .file_utils import make_dir, replace_path_prefix
+from .file_type import FileType
+from .file_wrapper import FileWrapper
 
 
 class FileInfo(object):
@@ -27,12 +27,6 @@ class FileInfo(object):
 
     def __lt__(self, other: 'FileInfo') -> bool:
         return str(self.path).lower() < str(other.path).lower()
-
-
-def _make_ftp() -> ftplib.FTP:
-    return ftplib.FTP(host=ENVIRONMENT.pygoodle_url,
-                      user=ENVIRONMENT.pygoodle_user,
-                      passwd=ENVIRONMENT.pygoodle_password)
 
 
 class DirectoryInfo(object):
@@ -88,11 +82,15 @@ class DirectoryInfo(object):
 
 class FTP(object):
 
-    def __init__(self, download_dir: Path, base_dir: Path = Path('/'), pool_size: int = 1):
+    def __init__(self, host: str, user: str, password: str,
+                 download_dir: Path, base_dir: Path = Path('/'), pool_size: int = 1):
         self.download_dir: Path = download_dir
         self.pool_size: int = pool_size
         self.base_dir = base_dir
-        self._ftp_pool: LazyPool[ftplib.FTP] = LazyPool(factory=_make_ftp, pool_size=pool_size)
+
+        def make_ftp() -> ftplib.FTP:
+            return ftplib.FTP(host=host, user=user, passwd=password)
+        self._ftp_pool: LazyPool[ftplib.FTP] = LazyPool(factory=make_ftp, pool_size=pool_size)
 
     def __enter__(self):
         return self

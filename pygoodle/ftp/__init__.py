@@ -7,3 +7,4 @@
 from .file_type import FileType
 from .file_wrapper import FileWrapper
 from .sort_type import SortType
+from .ftp import FTP

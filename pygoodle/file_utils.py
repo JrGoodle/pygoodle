@@ -47,8 +47,8 @@ def remove_file(file: Path, print_output: bool = True) -> None:
 
 
 def replace_path_prefix(path: Path, old_prefix: Path, new_prefix: Path):
-    assert not path.is_absolute()
-    assert path.is_relative_to(old_prefix)
+    # assert path.is_absolute()
+    # assert path.is_relative_to(old_prefix)
     relative_path = path.relative_to(old_prefix)
     return new_prefix / relative_path
 

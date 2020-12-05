@@ -53,10 +53,10 @@ class Format(object):
         return markup.escape(str(output))
 
     @classmethod
-    def size(cls, self, size: int) -> str:
+    def size(cls, size: int) -> str:
         parts = humanize.naturalsize(size).split()
         assert len(parts) == 2
-        number = self.bold(parts[0])
+        number = Format.bold(parts[0])
         unit = parts[1]
         return FORMAT.green(f'{number} {unit}')
 

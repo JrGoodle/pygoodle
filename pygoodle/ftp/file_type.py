@@ -6,8 +6,8 @@
 
 from enum import auto, unique
 
-from .formatting import FORMAT
-from .enum import AutoLowerName
+from pygoodle.formatting import FORMAT
+from pygoodle.enum import AutoLowerName
 
 
 @unique

@@ -6,8 +6,9 @@
 
 from typing import Dict, List, Union
 
-from .formatting import FORMAT
-from pygoodle.model import FileType
+from pygoodle.formatting import FORMAT
+
+from .file_type import FileType
 
 
 class FileWrapper(object):

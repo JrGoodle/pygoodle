@@ -7,7 +7,7 @@
 from enum import auto, unique
 from typing import List
 
-from .enum import AutoLowerName
+from pygoodle.enum import AutoLowerName
 
 
 @unique
