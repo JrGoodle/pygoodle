@@ -1,0 +1,124 @@
+"""pygoodle progress utilities
+
+.. codeauthor:: Joe DeCapo <joe@polka.cat>
+
+"""
+
+from threading import Lock
+from typing import Any, Dict, Optional
+
+from rich.console import Console
+from rich.progress import TaskID, BarColumn, ProgressColumn, Task
+from rich.progress import Progress as RichProgress
+
+from pygoodle.util.formatting import FORMAT
+from pygoodle.util.console import CONSOLE
+
+
+class DownloadProgressColumn(ProgressColumn):
+
+    def __init__(self) -> None:
+        self._width: int = 0
+        super().__init__()
+
+    def render(self, task: Task) -> str:
+        if 'units' in task.fields and task.fields['units'] == 'bytes':
+            downloaded = FORMAT.gnu_size(int(task.completed))
+            total = FORMAT.gnu_size(int(task.total))
+            output = f'{downloaded}/{total}'
+        else:
+            output = f'{task.completed}/{task.total}'
+
+        width = max(self._width, len(output))
+        if width > self._width:
+            self._width = width
+        return output.rjust(self._width)
+
+
+class Progress(object):
+
+    def __init__(self, console: Optional[Console] = None, should_clear_lines: bool = True):
+        self._delete_line_count: int = 0
+        self._lock: Lock = Lock()
+        self._task_ids: Dict[str: TaskID] = {}
+        self._subtask_ids: Dict[str: TaskID] = {}
+        self._should_clear_lines: bool = should_clear_lines
+
+        self._progress_bar_format = [
+            "[progress.description]{task.description}",
+            BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            DownloadProgressColumn(),
+            "{task.fields[units]}"
+        ]
+        self._progress: RichProgress = RichProgress(*self._progress_bar_format, console=console)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+
+    def add_task(self, identifier: Any, total: int, units: str, start: bool = True) -> None:
+        with self._lock:
+            task_id = self._progress.add_task(str(identifier), total=total, units=units, start=start)
+            self._add_task_id(identifier, task_id)
+
+    def add_subtask(self, identifier: Any, total: int, units: str, start: bool = True) -> None:
+        with self._lock:
+            task_id = self._progress.add_task(str(identifier), total=total, units=units, start=start)
+            self._add_subtask_id(identifier, task_id)
+
+            count = len(self._progress.tasks)
+            if count <= 1:
+                return
+            self._delete_line_count = max(self._delete_line_count, count - 1)
+
+    def clear_lines(self) -> None:
+        if self._should_clear_lines:
+            CONSOLE.delete_lines(count=self._delete_line_count, force=True)
+
+    def complete_task(self, identifier: Any) -> None:
+        task_id = self._get_task_id(identifier)
+        self._progress.update(task_id, completed=True)
+
+    def complete_subtask(self, identifier: Any) -> None:
+        task_id = self._get_subtask_id(identifier)
+        self._progress.update(task_id, completed=True, visible=False)
+        self._progress.remove_task(task_id)
+
+    def start(self) -> None:
+        self._progress.start()
+
+    def start_task(self, identifier: Any) -> None:
+        task_id = self._get_task_id(identifier)
+        self._progress.start_task(task_id)
+
+    def start_subtask(self, identifier: Any) -> None:
+        task_id = self._get_subtask_id(identifier)
+        self._progress.start_task(task_id)
+
+    def stop(self) -> None:
+        self._progress.stop()
+        self.clear_lines()
+
+    def update_task(self, identifier: Any, advance: int) -> None:
+        task_id = self._get_task_id(identifier)
+        self._progress.update(task_id, advance=advance)
+
+    def update_subtask(self, identifier: Any, advance: int) -> None:
+        task_id = self._get_subtask_id(identifier)
+        self._progress.update(task_id, advance=advance)
+
+    def _get_task_id(self, identifier: Any) -> TaskID:
+        return self._task_ids[str(identifier)]
+
+    def _get_subtask_id(self, identifier: Any) -> TaskID:
+        return self._subtask_ids[str(identifier)]
+
+    def _add_task_id(self, identifier: Any, task_id: TaskID) -> None:
+        self._task_ids[str(identifier)] = task_id
+
+    def _add_subtask_id(self, identifier: Any, task_id: TaskID) -> None:
+        self._subtask_ids[str(identifier)] = task_id

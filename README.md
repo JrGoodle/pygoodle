@@ -1,2 +1,3 @@
 # pygoodle
-python utilities
+
+General Python utils

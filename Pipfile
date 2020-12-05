@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+argcomplete = "*"
+colorama = "*"
+humanize = "*"
+paramiko = "*"
+pick = "*"
+resource_pool = "*"
+rich = "*"
+trio = "*"
+
+[requires]
+python_version = "3.8.5"
+
+[dev-packages]
+pygoodle = {editable = true, path = "."}

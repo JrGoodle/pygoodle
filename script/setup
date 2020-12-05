@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC1091
+
+set -euo pipefail
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+. 'script/utils.sh'
+
+run "${PWD}/script/bootstrap"
+
+. 'script/import.sh'
+
+h1 'Python'
+h2 'Update pip'
+run pip install --upgrade pip
+h2 'Pipenv'
+h3 'Update pipenv'
+run pip install --user --upgrade pipenv
+h3 'Update pipenv dependencies'
+run pipenv install --dev
+h3 'Install pygoodle in editable mode'
+run pipenv run pip install -e .
