@@ -7,7 +7,7 @@
 import argparse
 import pkg_resources
 from subprocess import CalledProcessError
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import argcomplete
 import colorama
@@ -16,8 +16,15 @@ from trio import MultiError
 from pygoodle.console import CONSOLE
 
 
+class Argument(object):
+
+    def __init__(self, *args, **kwargs):
+        self.args: Tuple[Any] = args
+        self.options: Dict[str, Any] = kwargs
+
+
 Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argparse._ArgumentGroup]  # noqa
-Arguments = List[Tuple[List[str], dict]]
+Arguments = List[Argument]
 
 
 class Subcommand(object):
@@ -27,9 +34,14 @@ class Subcommand(object):
                  subcommands: Optional[List['Subcommand']] = None):
         self.name: str = name
         self.help_message: str = help_message
-        self.args: Optional[Arguments] = args
-        self.mutually_exclusive_args: Optional[List[Arguments]] = mutually_exclusive_args
+        self.args: Arguments = [] if args is None else args
+        mut_ex_args = [] if mutually_exclusive_args is None else mutually_exclusive_args
+        self.mutually_exclusive_args: List[Arguments] = mut_ex_args
         self.subcommands: Optional[List[Subcommand]] = subcommands
+        self.add_args()
+
+    def add_args(self) -> None:
+        pass
 
     def run(self, args) -> None:
         raise NotImplementedError
@@ -63,12 +75,10 @@ class App(object):
         sub_parser = parser.add_parser(subcommand.name, help=subcommand.help_message)
         sub_parser.formatter_class = argparse.RawTextHelpFormatter
 
-        if subcommand.args is not None:
-            self._add_parser_arguments(sub_parser, subcommand.args)
+        self._add_parser_arguments(sub_parser, subcommand.args)
 
-        if subcommand.mutually_exclusive_args is not None:
-            for args in subcommand.mutually_exclusive_args:
-                self._add_parser_arguments(sub_parser.add_mutually_exclusive_group(), args)
+        for args in subcommand.mutually_exclusive_args:
+            self._add_parser_arguments(sub_parser.add_mutually_exclusive_group(), args)
 
         if subcommand.subcommands is None:
             sub_parser.set_defaults(func=sub_parser.print_help)
@@ -120,9 +130,9 @@ class App(object):
         """
 
         for argument in arguments:
-            parser.add_argument(*argument[0], **argument[1])
+            parser.add_argument(*argument.args, **argument.options)
 
-    def _create_parser(self, arguments: Optional[Arguments] = None,
+    def _create_parser(self, args: Optional[Arguments] = None,
                        mutually_exclusive_args: Optional[List[Arguments]] = None) -> argparse.ArgumentParser:
         """Configure CLI parsers
 
@@ -135,11 +145,11 @@ class App(object):
             command_parser.set_defaults(func=command_parser.print_help)
             version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
             self._add_parser_arguments(command_parser, [
-                (['-v', '--version'], dict(action='version', version=version_message))
+                Argument('-v', '--version', action='version', version=version_message)
             ])
 
-            if arguments is not None:
-                self._add_parser_arguments(command_parser, arguments)
+            if args is not None:
+                self._add_parser_arguments(command_parser, args)
 
             if mutually_exclusive_args is not None:
                 for args in mutually_exclusive_args:
