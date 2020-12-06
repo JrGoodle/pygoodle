@@ -11,10 +11,14 @@ import jsonschema
 import yaml as pyyaml
 
 from .error import ExistingFileError
-from .formatting import Format
+from .format import Format
 
 
 class InvalidYamlError(Exception):
+    pass
+
+
+class MissingYamlError(Exception):
     pass
 
 

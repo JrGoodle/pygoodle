@@ -6,7 +6,7 @@
 
 from typing import Dict, List, Union
 
-from pygoodle.formatting import Format
+from pygoodle.format import Format
 
 from .file_type import FileType
 

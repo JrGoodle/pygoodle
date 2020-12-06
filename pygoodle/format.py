@@ -4,6 +4,7 @@
 
 """
 
+import re
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -26,6 +27,10 @@ class Format(object):
     @classmethod
     def cyan(cls, output: Any) -> str:
         return f'[cyan]{output}[/cyan]'
+
+    @classmethod
+    def default(cls, output: Any) -> str:
+        return f'[default]{output}[/default]'
 
     @classmethod
     def blue(cls, output: Any) -> str:
@@ -51,6 +56,19 @@ class Format(object):
     def escape(cls, output: Any) -> str:
         import rich.markup as markup
         return markup.escape(str(output))
+
+    @classmethod
+    def remove_prefix(cls, text: str, prefix: str) -> str:
+        """Remove prefix from string
+
+        :param str text: Text to remove prefix from
+        :param str prefix: Prefix to remove
+        :return: Text with prefix removed if present
+        """
+
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
 
     @classmethod
     def size(cls, size: int) -> str:
@@ -134,3 +152,24 @@ class Format(object):
         contents = path.read_text().splitlines()
         lines = [line.strip() for line in contents]
         return lines
+
+    @classmethod
+    def list_from_string(cls, text: str, sep: Optional[str] = None) -> List[str]:
+        return text.split(sep=sep)
+
+    @classmethod
+    def clean_escape_sequences(cls, string: str) -> str:
+        reaesc = re.compile(r'\x1b[^m]*m')
+        return reaesc.sub('', string)
+
+    @classmethod
+    def remove_prefix(cls, text: str, prefix: str) -> str:
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
+
+    @classmethod
+    def remove_suffix(cls, text: str, suffix: str) -> str:
+        if text.endswith(suffix):
+            return text[:len(suffix)]
+        return text

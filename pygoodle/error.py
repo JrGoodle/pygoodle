@@ -17,9 +17,5 @@ class MissingFileError(Exception):
     pass
 
 
-class MissingYamlError(Exception):
-    pass
-
-
 class UnknownArgumentError(Exception):
     pass

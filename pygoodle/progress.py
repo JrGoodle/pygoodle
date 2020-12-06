@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import TaskID, BarColumn, ProgressColumn, Task
 from rich.progress import Progress as RichProgress
 
-from .formatting import Format
+from .format import Format
 from .console import CONSOLE
 
 

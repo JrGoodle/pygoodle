@@ -40,7 +40,7 @@ class Task(object):
         pass
 
     def run(self) -> None:
-        pass
+        raise NotImplementedError
 
 
 class TaskPool(object):

@@ -30,6 +30,9 @@ class ProgressTask(Task):
         if not self.cancelled:
             self.progress.complete_subtask(self.name)
 
+    def run(self) -> None:
+        raise NotImplementedError
+
 
 class ProgressTaskPool(TaskPool):
 
