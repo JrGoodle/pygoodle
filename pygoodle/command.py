@@ -14,19 +14,21 @@ from .console import CONSOLE
 from .format import Format
 
 
-def run_command(command: Union[str, List[str]], cwd: Path = Path.home(),
-                print_output: Optional[bool] = None, check: bool = True, env: Optional[dict] = None,
-                stdout=PIPE, stderr=STDOUT) -> CompletedProcess:
+def run_command(command: Union[str, List[str]], cwd: Path = Path.cwd(), check: bool = True,
+                env: Optional[dict] = None, stdout=PIPE, stderr=STDOUT,
+                print_output: Optional[bool] = None, print_command: bool = False) -> CompletedProcess:
 
     if print_output is None:
         print_output = CONSOLE.print_output
 
     if print_output:
+        stdout = None
+        stderr = None
+
+    if print_command and print_output:
         output = Format.default(f"> {command}")
         output = Format.bold(output)
         CONSOLE.stdout(output)
-        stdout = None
-        stderr = None
 
     if isinstance(command, list):
         cmd = ' '.join(command)
