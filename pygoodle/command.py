@@ -7,7 +7,7 @@
 import os
 import subprocess
 from pathlib import Path
-from subprocess import CompletedProcess, STDOUT
+from subprocess import CompletedProcess, PIPE, STDOUT
 from typing import List, Optional, Union
 
 from .console import CONSOLE
@@ -16,7 +16,7 @@ from .format import Format
 
 def run_command(command: Union[str, List[str]], cwd: Path = Path.home(),
                 print_output: Optional[bool] = None, check: bool = True, env: Optional[dict] = None,
-                stdout=CONSOLE.stdout_console.file, stderr=STDOUT) -> CompletedProcess:
+                stdout=PIPE, stderr=STDOUT) -> CompletedProcess:
 
     if print_output is None:
         print_output = CONSOLE.print_output
