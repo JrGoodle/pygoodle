@@ -54,6 +54,15 @@ def remove_file(file: Path, print_output: bool = True) -> None:
     os.remove(str(file))
 
 
+def remove(path: Path) -> None:
+    if not path.exists():
+        return
+    if path.is_dir():
+        remove_dir(path)
+    elif path.is_file():
+        remove_file(path)
+
+
 def replace_path_prefix(path: Path, old_prefix: Path, new_prefix: Path):
     # assert path.is_absolute()
     # assert path.is_relative_to(old_prefix)

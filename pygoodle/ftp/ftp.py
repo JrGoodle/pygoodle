@@ -1,4 +1,4 @@
-"""ftp utilities
+"""ftp
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
@@ -122,6 +122,8 @@ class FTP(object):
 
             def run(self) -> None:
                 def callback(data):
+                    if self.cancelled:
+                        raise Exception(f'FTP download of {self._file.name} was cancelled')
                     self.progress.update_subtask(self._file.name, advance=len(data))
 
                 ftp.download_file(self._file, callback)

@@ -1,10 +1,10 @@
-"""ftp utilities
+"""progress task pool
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
 """
 
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from .console import CONSOLE, Console
 from .progress import Progress
@@ -21,13 +21,13 @@ class ProgressTask(Task):
         super().__init__(name)
 
     def before_task(self) -> None:
+        super().before_task()
         self.progress.add_subtask(self.name, total=self.total, units=self.units, start=self.start)
 
     def after_task(self) -> None:
-        self.progress.complete_subtask(self.name)
-
-    def run(self) -> Any:
-        pass
+        super().after_task()
+        if not self.cancelled:
+            self.progress.complete_subtask(self.name)
 
 
 class ProgressTaskPool(TaskPool):
@@ -47,14 +47,19 @@ class ProgressTaskPool(TaskPool):
         self.progress.stop()
 
     def before_tasks(self, tasks: List[ProgressTask]) -> None:
+        super().before_tasks(tasks)
         for task in tasks:
             task.progress = self.progress
         self.progress.start()
         self.progress.add_task(self._title, total=len(tasks), units=self._units)
 
     def after_tasks(self, tasks: List[ProgressTask]) -> None:
-        self.progress.complete_task(self._title)
-        self.progress.stop()
+        super().after_tasks(tasks)
+        if not self.cancelled:
+            self.progress.complete_task(self._title)
+        self.progress.stop(clear_lines=not self.cancelled)
 
     def after_task(self, task: ProgressTask) -> None:
-        self.progress.update_task(self._title, advance=1)
+        super().after_task(task)
+        if not self.cancelled:
+            self.progress.update_task(self._title, advance=1)

@@ -99,9 +99,10 @@ class Progress(object):
         task_id = self._get_subtask_id(identifier)
         self._progress.start_task(task_id)
 
-    def stop(self) -> None:
+    def stop(self, clear_lines: bool = True) -> None:
         self._progress.stop()
-        self.clear_lines()
+        if clear_lines:
+            self.clear_lines()
 
     def update_task(self, identifier: Any, advance: int) -> None:
         task_id = self._get_task_id(identifier)
