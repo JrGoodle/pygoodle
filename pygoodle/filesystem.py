@@ -1,16 +1,16 @@
-"""unrar utilities
+"""File system utilities
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 
 """
 
+# import errno
 import fnmatch
 import os
 import shutil
 from pathlib import Path
 from typing import List, Optional
 
-from .console import CONSOLE
 from .execute import run_command
 
 
@@ -33,24 +33,18 @@ def find_rar(directory: Path) -> Optional[Path]:
 def make_dir(dir_path: Path) -> None:
     if dir_path.exists():
         return
-    CONSOLE.stdout(f'Create directory {dir_path}')
     os.makedirs(dir_path)
 
 
 def move(input_path: Path, output_path: Path) -> None:
-    CONSOLE.stdout(f'Move {input_path} to {output_path}')
     shutil.move(str(input_path), str(output_path))
 
 
-def remove_dir(dir_path: Path, print_output: bool = True) -> None:
-    if print_output:
-        CONSOLE.stdout(f'Remove dir {dir_path}')
+def remove_dir(dir_path: Path) -> None:
     shutil.rmtree(str(dir_path))
 
 
-def remove_file(file: Path, print_output: bool = True) -> None:
-    if print_output:
-        CONSOLE.stdout(f'Remove file {file}')
+def remove_file(file: Path) -> None:
     os.remove(str(file))
 
 
@@ -77,4 +71,58 @@ def listdir_matching(directory: Path, pattern: str) -> List[Path]:
 
 
 def unar(file: Path) -> None:
-    run_command(f"unar '{file}'", cwd=file.parent, stdout=CONSOLE.stdout_console.file)
+    run_command(f"unar '{file}'", cwd=file.parent)
+
+
+def create_backup_file(file: Path) -> None:
+    """Copy file to {file}.backup
+
+    :param Path file: File path to copy
+    """
+
+    shutil.copyfile(str(file), f"{str(file)}.backup")
+
+
+def restore_from_backup_file(file: Path) -> None:
+    """Copy {file}.backup to file
+
+    :param Path file: File path to copy
+    """
+
+    shutil.copyfile(f"{file}.backup", file)
+
+
+# def make_dir(directory: Path, check: bool = True) -> None:
+#     """Make directory if it doesn't exist
+#
+#     :param str directory: Directory path to create
+#     :param bool check: Whether to raise exceptions
+#     """
+#
+#     if directory.exists():
+#         return
+#
+#     try:
+#         os.makedirs(str(directory))
+#     except OSError as err:
+#         if err.errno == errno.EEXIST:
+#             LOG.error(f"Directory already exists at {Format.path(directory)}")
+#         else:
+#             LOG.error(f"Failed to create directory {Format.path(directory)}")
+#         if check:
+#             raise
+
+
+# def remove_directory(dir_path: Path, check: bool = True) -> None:
+#     """Remove directory at path
+#
+#     :param str dir_path: Path to directory to remove
+#     :param bool check: Whether to raise errors
+#     """
+#
+#     try:
+#         shutil.rmtree(dir_path)
+#     except shutil.Error:
+#         LOG.error(f"Failed to remove directory {Format.path(dir_path)}")
+#         if check:
+#             raise

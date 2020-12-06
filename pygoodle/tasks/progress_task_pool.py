@@ -6,8 +6,9 @@
 
 from typing import List, Optional
 
-from .console import CONSOLE, Console
-from .progress import Progress
+from pygoodle.console import CONSOLE, Console
+from pygoodle.progress import Progress
+
 from .task_pool import Task, TaskPool
 
 
@@ -53,13 +54,13 @@ class ProgressTaskPool(TaskPool):
         self.progress.start()
         self.progress.add_task(self._title, total=len(tasks), units=self._units)
 
+    def after_task(self, task: ProgressTask) -> None:
+        super().after_task(task)
+        if not self.cancelled:
+            self.progress.update_task(self._title, advance=1)
+
     def after_tasks(self, tasks: List[ProgressTask]) -> None:
         super().after_tasks(tasks)
         if not self.cancelled:
             self.progress.complete_task(self._title)
         self.progress.stop(clear_lines=not self.cancelled)
-
-    def after_task(self, task: ProgressTask) -> None:
-        super().after_task(task)
-        if not self.cancelled:
-            self.progress.update_task(self._title, advance=1)

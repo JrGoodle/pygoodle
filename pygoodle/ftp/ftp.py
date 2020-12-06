@@ -10,12 +10,16 @@ from typing import Callable, List, Generator
 
 from resource_pool import LazyPool
 
-from pygoodle.file_utils import make_dir, replace_path_prefix
-from pygoodle.progress_task_pool import ProgressTask, ProgressTaskPool
+import pygoodle.filesystem as fs
+from pygoodle.tasks import ProgressTask, ProgressTaskPool
 from pygoodle.console import CONSOLE, disable_output
 
 from .file_type import FileType
 from .file_wrapper import FileWrapper
+
+
+class CancelledDownloadError(Exception):
+    pass
 
 
 class FileInfo(object):
@@ -113,6 +117,15 @@ class FTP(object):
         else:
             raise Exception('Unknown file type')
 
+        download_path = self._get_download_path(path)
+
+        class DownloadTaskPool(ProgressTaskPool):
+            def after_tasks(self, tasks: List[ProgressTask]) -> None:
+                super().after_tasks(tasks)
+                if self.cancelled:
+                    CONSOLE.stdout(f'Remove {download_path}', force=True)
+                    fs.remove(download_path)
+
         ftp = self
 
         class DownloadTask(ProgressTask):
@@ -123,16 +136,16 @@ class FTP(object):
             def run(self) -> None:
                 def callback(data):
                     if self.cancelled:
-                        raise Exception(f'FTP download of {self._file.name} was cancelled')
+                        raise CancelledDownloadError(f'FTP download of {self._file.name} was cancelled')
                     self.progress.update_subtask(self._file.name, advance=len(data))
 
                 ftp.download_file(self._file, callback)
 
-        tasks = [DownloadTask(file) for file in files]
-        pool = ProgressTaskPool(jobs=self.pool_size, title='Files', units='files')
-        pool.run(tasks)
+        download_tasks = [DownloadTask(file) for file in files]
+        pool = DownloadTaskPool(jobs=self.pool_size, title='Files', units='files')
+        pool.run(download_tasks)
         CONSOLE.stdout(f'Downloaded {len(files)} files', force=True)
-        return self._get_download_path(path)
+        return download_path
 
     def get_file_wrapper(self, path: Path) -> FileWrapper:
         file_type = self._file_type(path)
@@ -176,7 +189,7 @@ class FTP(object):
         return size
 
     def _get_download_path(self, path: Path) -> Path:
-        return replace_path_prefix(path, self.base_dir, self.download_dir)
+        return fs.replace_path_prefix(path, self.base_dir, self.download_dir)
 
     def _get_file_size(self, file: Path) -> int:
         with self.reserve_ftp() as ftp:
@@ -185,6 +198,6 @@ class FTP(object):
         return size
 
     def _make_download_dirs(self, path: Path, directory_info: DirectoryInfo) -> None:
-        make_dir(self._get_download_path(path))
+        fs.make_dir(self._get_download_path(path))
         for directory in directory_info.directories:
-            make_dir(self._get_download_path(directory))
+            fs.make_dir(self._get_download_path(directory))

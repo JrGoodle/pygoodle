@@ -6,14 +6,15 @@
 
 import subprocess
 from pathlib import Path
-from subprocess import CompletedProcess, STDOUT, PIPE
+from subprocess import CompletedProcess, STDOUT
 from typing import List, Union
 
 from .console import CONSOLE
 
 
 def run_command(command: Union[str, List[str]], cwd: Path = Path.home(),
-                print_output: bool = True, check: bool = True, stdout=PIPE, stderr=STDOUT) -> CompletedProcess:
+                print_output: bool = True, check: bool = True,
+                stdout=CONSOLE.stdout_console.file, stderr=STDOUT) -> CompletedProcess:
     stdout = stdout
     stderr = stderr
     if print_output:

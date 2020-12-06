@@ -7,14 +7,13 @@ verify_ssl = true
 argcomplete = "*"
 colorama = "*"
 humanize = "*"
+jsonschema = "*"
 paramiko = "*"
 pick = "*"
 resource_pool = "*"
 rich = "*"
 trio = "*"
+PyYAML = "*"
 
 [requires]
 python_version = "3.8.5"
-
-[dev-packages]
-pygoodle = {editable = true, path = "."}

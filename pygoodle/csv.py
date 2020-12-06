@@ -8,17 +8,13 @@ import csv
 from pathlib import Path
 from typing import List, Optional
 
-from .console import CONSOLE
-
 
 def append_to_csv_file(file: Path, rows: List[List[str]]) -> None:
-    CONSOLE.stdout(f'Append to file: {file}')
     with file.open('a') as csv_file:
         write_csv(csv_file, rows)
 
 
 def create_csv_file(file: Path, header: List[str], rows: List[List[str]]) -> None:
-    CONSOLE.stdout(f'Create file: {file}')
     with file.open('w') as csv_file:
         write_csv(csv_file, rows, header)
 

@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import TaskID, BarColumn, ProgressColumn, Task
 from rich.progress import Progress as RichProgress
 
-from .formatting import FORMAT
+from .formatting import Format
 from .console import CONSOLE
 
 
@@ -23,8 +23,8 @@ class DownloadProgressColumn(ProgressColumn):
 
     def render(self, task: Task) -> str:
         if 'units' in task.fields and task.fields['units'] == 'bytes':
-            downloaded = FORMAT.gnu_size(int(task.completed))
-            total = FORMAT.gnu_size(int(task.total))
+            downloaded = Format.gnu_size(int(task.completed))
+            total = Format.gnu_size(int(task.total))
             output = f'{downloaded}/{total}'
         else:
             output = f'{task.completed}/{task.total}'

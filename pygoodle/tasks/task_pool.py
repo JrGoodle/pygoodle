@@ -9,7 +9,7 @@ from typing import Any, List, Optional
 
 import trio
 
-from .console import disable_output
+from pygoodle.console import disable_output
 
 
 class Task(object):
@@ -60,13 +60,13 @@ class TaskPool(object):
     def before_tasks(self, tasks: List[Task]) -> None:
         pass
 
-    def after_tasks(self, tasks: List[Task]) -> None:
-        pass
-
     def before_task(self, task: Task) -> None:
         pass
 
     def after_task(self, task: Task) -> None:
+        pass
+
+    def after_tasks(self, tasks: List[Task]) -> None:
         pass
 
     @disable_output

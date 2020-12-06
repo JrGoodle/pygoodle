@@ -52,7 +52,7 @@ class Console:
 
     def stderr(self, output: Any = '', force: bool = False) -> None:
         if self.print_output or force:
-            self._stderr.log(output, log_locals=True)
+            self._stderr.log(output)
 
     def stdout(self, output: Any = '', force: bool = False) -> None:
         if self.print_output or force:

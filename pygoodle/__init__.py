@@ -1,4 +1,4 @@
-"""pygoodle.util module __init__
+"""pygoodle module __init__
 
 .. codeauthor:: Joe DeCapo <joe@polka.cat>
 

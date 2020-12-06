@@ -33,8 +33,10 @@ setup(
         'argcomplete',
         'colorama',
         'humanize',
+        'jsonschema',
         'paramiko',
         'pick',
+        'PyYAML',
         'resource_pool',
         'rich',
         'trio'

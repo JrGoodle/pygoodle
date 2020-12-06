@@ -5,7 +5,7 @@
 """
 
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Optional
 
 import humanize
 
@@ -58,7 +58,7 @@ class Format(object):
         assert len(parts) == 2
         number = Format.bold(parts[0])
         unit = parts[1]
-        return FORMAT.green(f'{number} {unit}')
+        return Format.green(f'{number} {unit}')
 
     @classmethod
     def underline(cls, output: Any) -> str:
@@ -106,11 +106,31 @@ class Format(object):
     def path(cls, path: Path) -> str:
         return Format.cyan(str(path))
 
+    @classmethod
+    def _format_yaml_symlink(cls, symlink: Path) -> str:
+        """Return formatted string for yaml symlink
 
-FORMAT: Format = Format()
+        :param Path symlink: Yaml symlink
+        :return: Formatted string for yaml symlink
+        """
 
+        assert symlink.is_symlink()
+        return f"\n{Format.path(symlink)} -> {Format.path(symlink.resolve())}\n"
 
-def get_lines(path: Path) -> List[str]:
-    contents = path.read_text().splitlines()
-    lines = [line.strip() for line in contents]
-    return lines
+    @classmethod
+    def _format_yaml_file(cls, path: Path, relative_to: Optional[Path]) -> str:
+        """Return formatted string for yaml file
+
+        :param Path path: Yaml file path
+        :return: Formatted string for yaml file
+        """
+
+        if relative_to is not None:
+            path = path.resolve().relative_to(relative_to)
+        return f"\n{Format.path(path)}\n"
+
+    @classmethod
+    def get_lines(cls, path: Path) -> List[str]:
+        contents = path.read_text().splitlines()
+        lines = [line.strip() for line in contents]
+        return lines

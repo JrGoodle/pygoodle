@@ -6,7 +6,7 @@
 
 from enum import auto, unique
 
-from pygoodle.formatting import FORMAT
+from pygoodle.formatting import Format
 from pygoodle.enum import AutoLowerName
 
 
@@ -18,7 +18,7 @@ class FileType(AutoLowerName):
     @property
     def formatted_value(self) -> str:
         if self is FileType.DIR:
-            return FORMAT.blue(self.value)
+            return Format.blue(self.value)
         elif self is FileType.FILE:
             return self.value
         else:

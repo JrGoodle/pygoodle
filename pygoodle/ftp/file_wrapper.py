@@ -6,7 +6,7 @@
 
 from typing import Dict, List, Union
 
-from pygoodle.formatting import FORMAT
+from pygoodle.formatting import Format
 
 from .file_type import FileType
 
@@ -61,8 +61,8 @@ class FileWrapper(object):
         return [
             self.name,
             self.get_file_type().formatted_value,
-            FORMAT.size(self.size),
-            FORMAT.bool(self.downloaded)
+            Format.size(self.size),
+            Format.bool(self.downloaded)
         ]
 
     @property
