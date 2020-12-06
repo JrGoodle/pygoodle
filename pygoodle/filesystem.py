@@ -30,10 +30,8 @@ def find_rar(directory: Path) -> Optional[Path]:
     return files[0]
 
 
-def make_dir(dir_path: Path) -> None:
-    if dir_path.exists():
-        return
-    os.makedirs(dir_path)
+def make_dir(dir_path: Path, exist_ok: bool = False) -> None:
+    os.makedirs(dir_path, exist_ok=exist_ok)
 
 
 def move(input_path: Path, output_path: Path) -> None:
