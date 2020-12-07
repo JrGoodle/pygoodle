@@ -26,7 +26,8 @@ class App(object):
                  arguments: Optional[List[Argument]] = None,
                  mutually_exclusive_args: Optional[List[List[Argument]]] = None,
                  subcommands: Optional[List[Subcommand]] = None,
-                 argument_groups: Optional[Dict[str, List[Argument]]] = None):
+                 argument_groups: Optional[Dict[str, List[Argument]]] = None,
+                 action: Optional[Callable] = None):
         from rich.traceback import install
         install()
         import colorama
@@ -34,7 +35,8 @@ class App(object):
 
         self.name = name
         self.entry_point = name if entry_point is None else entry_point
-        self.parser: argparse.ArgumentParser = self._create_parser(arguments, mutually_exclusive_args, argument_groups)
+        self.parser: argparse.ArgumentParser = self._create_parser(arguments, mutually_exclusive_args,
+                                                                   argument_groups, action)
         self.subparsers = self.parser.add_subparsers(dest=f'{self.entry_point} subcommand')
         for subcommand in subcommands:
             self._add_subcommand(subcommand)
@@ -112,7 +114,8 @@ class App(object):
 
     def _create_parser(self, args: Optional[List[Argument]] = None,
                        mutually_exclusive_args: Optional[List[List[Argument]]] = None,
-                       argument_groups: Optional[Dict[str, List[Argument]]] = None) -> argparse.ArgumentParser:
+                       argument_groups: Optional[Dict[str, List[Argument]]] = None,
+                       action: Optional[Callable] = None) -> argparse.ArgumentParser:
         """Configure CLI parsers
 
         :return: Configured argument parser for command
@@ -124,7 +127,8 @@ class App(object):
 
         try:
             command_parser = argparse.ArgumentParser(prog=self.entry_point)
-            command_parser.set_defaults(func=command_help)
+            action = command_help if action is None else action
+            command_parser.set_defaults(func=action)
             version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
             self._add_parser_arguments(command_parser, [
                 Argument('-v', '--version', action='version', version=version_message)
