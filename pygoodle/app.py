@@ -32,12 +32,21 @@ class Subcommand(object):
     help: str = f'{name} help'
     args: List[Argument] = []
     mutually_exclusive_args: List[List[Argument]] = []
-    argument_groups: Dict[str, List[Argument]] = []
+    argument_groups: Dict[str, List[Argument]] = {}
     subcommands: List['Subcommand'] = []
+
+    def __init__(self):
+        self._parser: Optional[argparse.ArgumentParser] = None
 
     @staticmethod
     def run(args) -> None:
         raise NotImplementedError
+
+    def print_help(self) -> None:
+        self._parser.print_help()
+
+    def add_parser(self, parser) -> None:
+        self._parser = parser
 
 
 class App(object):
@@ -67,7 +76,9 @@ class App(object):
 
         parser = self.subparsers if parser is None else parser
         sub_parser = parser.add_parser(subcommand.name, help=subcommand.help)
+        subcommand.add_parser(sub_parser)
         sub_parser.formatter_class = argparse.RawTextHelpFormatter
+        sub_parser.set_defaults(func=subcommand.run)
 
         self._add_parser_arguments(sub_parser, subcommand.args)
 
@@ -77,12 +88,8 @@ class App(object):
         for title, args in subcommand.argument_groups.items():
             self._add_parser_arguments(sub_parser.add_argument_group(title=title), args)
 
-        if subcommand.subcommands is None:
-            sub_parser.set_defaults(func=sub_parser.print_help)
-        else:
-            sub_parser.set_defaults(func=subcommand.run)
-            for command in subcommand.subcommands:
-                self.add_subcommand(command, sub_parser)
+        for command in subcommand.subcommands:
+            self.add_subcommand(command, sub_parser)
 
     def run(self, process_args: Callable = lambda _: None) -> None:
         """command CLI main function"""
