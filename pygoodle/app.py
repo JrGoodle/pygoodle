@@ -6,20 +6,48 @@
 
 import argparse
 import pkg_resources
+import sys
 from subprocess import CalledProcessError
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import argcomplete
 from trio import MultiError
 
-from pygoodle.console import CONSOLE
+from .console import CONSOLE
+from .format import Format
 
 
 class Argument(object):
 
     def __init__(self, *args, **kwargs):
         self.args: Tuple[Any] = args
+        metavar = 'metavar'
+        if metavar not in kwargs:
+            name = self._get_name(args)
+            kwargs[metavar] = f'<{name}>'
         self.options: Dict[str, Any] = kwargs
+
+    @staticmethod
+    def _get_name(args: Tuple[Any]) -> str:
+        names = [a for a in args if a.beginswith('--')]
+        if names:
+            return Format.remove_prefix(names[0], '--')
+
+        names = [a for a in args if a.beginswith('-')]
+        if names:
+            return Format.remove_prefix(names[0], '-')
+
+        names = [a for a in args if not a.beginswith('-')]
+        if names:
+            return names[0]
+
+        raise Exception('Failed to infer argument name')
+
+
+class BoolArgument(Argument):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(action='store_true', *args, **kwargs)
 
 
 Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argparse._ArgumentGroup]  # noqa
@@ -147,9 +175,12 @@ class App(object):
         :rtype: argparse.ArgumentParser
         """
 
+        def command_help(_):
+            command_parser.print_help(file=sys.stderr)
+
         try:
             command_parser = argparse.ArgumentParser(prog=self.entry_point)
-            command_parser.set_defaults(func=command_parser.print_help)
+            command_parser.set_defaults(func=command_help)
             version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
             self._add_parser_arguments(command_parser, [
                 Argument('-v', '--version', action='version', version=version_message)
