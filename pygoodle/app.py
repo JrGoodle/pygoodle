@@ -10,7 +10,6 @@ from subprocess import CalledProcessError
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import argcomplete
-import colorama
 from trio import MultiError
 
 from pygoodle.console import CONSOLE
@@ -58,38 +57,15 @@ class App(object):
                  argument_groups: Optional[Dict[str, List[Argument]]] = None):
         from rich.traceback import install
         install()
+        import colorama
         colorama.init()
 
         self.name = name
         self.entry_point = name if entry_point is None else entry_point
         self.parser: argparse.ArgumentParser = self._create_parser(arguments, mutually_exclusive_args, argument_groups)
-        self.subparsers = self.parser.add_subparsers(dest='subcommand')
+        self.subparsers = self.parser.add_subparsers(dest=f'{self.entry_point} subcommand')
         for subcommand in subcommands:
-            self.add_subcommand(subcommand)
-
-    def add_subcommand(self, subcommand: Subcommand, parser: Optional[Parser] = None) -> None:
-        """Add arguments to parser
-
-        :param Subcommand subcommand: Subcommand object
-        :param Optional[Parser] parser: Parser to add subcommand to
-        """
-
-        parser = self.subparsers if parser is None else parser
-        sub_parser = parser.add_parser(subcommand.name, help=subcommand.help)
-        subcommand.add_parser(sub_parser)
-        sub_parser.formatter_class = argparse.RawTextHelpFormatter
-        sub_parser.set_defaults(func=subcommand.run)
-
-        self._add_parser_arguments(sub_parser, subcommand.args)
-
-        for args in subcommand.mutually_exclusive_args:
-            self._add_parser_arguments(sub_parser.add_mutually_exclusive_group(), args)
-
-        for title, args in subcommand.argument_groups.items():
-            self._add_parser_arguments(sub_parser.add_argument_group(title=title), args)
-
-        for command in subcommand.subcommands:
-            self.add_subcommand(command, sub_parser)
+            self._add_subcommand(subcommand)
 
     def run(self, process_args: Callable = lambda _: None) -> None:
         """command CLI main function"""
@@ -135,6 +111,32 @@ class App(object):
 
         for argument in arguments:
             parser.add_argument(*argument.args, **argument.options)
+
+    def _add_subcommand(self, subcommand: Subcommand, subparsers: Optional[argparse._SubParsersAction] = None) -> None:  # noqa
+        """Add arguments to parser
+
+        :param Subcommand subcommand: Subcommand object
+        :param Optional subparsers: Parser to add subcommand to
+        """
+
+        subparsers = self.subparsers if subparsers is None else subparsers
+        parser = subparsers.add_parser(subcommand.name, help=subcommand.help)
+        subcommand.add_parser(parser)
+        parser.formatter_class = argparse.RawTextHelpFormatter
+        parser.set_defaults(func=subcommand.run)
+
+        self._add_parser_arguments(parser, subcommand.args)
+
+        for args in subcommand.mutually_exclusive_args:
+            self._add_parser_arguments(parser.add_mutually_exclusive_group(), args)
+
+        for title, args in subcommand.argument_groups.items():
+            self._add_parser_arguments(parser.add_argument_group(title=title), args)
+
+        if subcommand.subcommands:
+            command_subparsers = parser.add_subparsers(dest=f'{subcommand.name} subcommand', help=subcommand.help)
+            for command in subcommand.subcommands:
+                self._add_subcommand(command, command_subparsers)
 
     def _create_parser(self, args: Optional[List[Argument]] = None,
                        mutually_exclusive_args: Optional[List[List[Argument]]] = None,
