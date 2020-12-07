@@ -8,95 +8,16 @@ import argparse
 import pkg_resources
 import sys
 from subprocess import CalledProcessError
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import argcomplete
 from trio import MultiError
 
-import pygoodle.reflection as reflect
-from .console import CONSOLE
-from .format import Format
-
-
-class Argument(object):
-
-    def __init__(self, *args, **kwargs):
-        self.args: Tuple[Any] = args
-        metavar = 'metavar'
-        if metavar not in kwargs:
-            name = self._get_name(args)
-            kwargs[metavar] = f'<{name}>'
-        self.options: Dict[str, Any] = kwargs
-
-    @staticmethod
-    def _get_name(args: Tuple[Any]) -> str:
-        names = [a for a in args if a.beginswith('--')]
-        if names:
-            return Format.remove_prefix(names[0], '--')
-
-        names = [a for a in args if a.beginswith('-')]
-        if names:
-            return Format.remove_prefix(names[0], '-')
-
-        names = [a for a in args if not a.beginswith('-')]
-        if names:
-            return names[0]
-
-        raise Exception('Failed to infer argument name')
-
-
-class BoolArgument(Argument):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(action='store_true', *args, **kwargs)
-
+from ..console import CONSOLE
+from .argument import Argument
+from .subcommand import Subcommand
 
 Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argparse._ArgumentGroup]  # noqa
-
-
-class Subcommand(object):
-
-    class Meta:
-        name: str = 'subcommand'
-        help: str = f'{name} help'
-        args: List[Argument] = []
-        mutually_exclusive_args: List[List[Argument]] = []
-        argument_groups: Dict[str, List[Argument]] = {}
-        subcommands: List['Subcommand'] = []
-
-    def __init__(self):
-        self._parser: Optional[argparse.ArgumentParser] = None
-        self.name: str = 'subcommand'
-        self.help: str = f'{self.name} help'
-        self.args: List[Argument] = []
-        self.mutually_exclusive_args: List[List[Argument]] = []
-        self.argument_groups: Dict[str, List[Argument]] = {}
-        self.subcommands: List['Subcommand'] = []
-
-    @staticmethod
-    def run(args) -> None:
-        raise NotImplementedError
-
-    def print_help(self) -> None:
-        self._parser.print_help()
-
-    def add_parser(self, parser) -> None:
-        self._parser = parser
-
-    def _update_attr(self, name: str, meta: Meta) -> None:
-        reflect.update_attr(self, name, meta)
-
-    def _update_meta(self) -> None:
-        classes = reflect.method_resolution_order(self, reverse=True)
-        for cls in classes:
-            meta = reflect.class_member(cls, 'Meta')
-            if meta is not None:
-                self._update_attr('name', meta)
-                self._update_attr('help', meta)
-                self._update_attr('args', meta)
-                self._update_attr('mutually_exclusive_args', meta)
-                self._update_attr('argument_groups', meta)
-                self._update_attr('subcommands', meta)
 
 
 class App(object):
