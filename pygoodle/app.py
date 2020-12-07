@@ -55,6 +55,7 @@ Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argpar
 
 class Subcommand(object):
 
+    class Meta:
     name: str = 'subcommand'
     help: str = f'{name} help'
     args: List[Argument] = []
@@ -64,6 +65,21 @@ class Subcommand(object):
 
     def __init__(self):
         self._parser: Optional[argparse.ArgumentParser] = None
+        self.name: str = 'subcommand'
+        self.help: str = f'{self.name} help'
+        self.args: List[Argument] = []
+        self.mutually_exclusive_args: List[List[Argument]] = []
+        self.argument_groups: Dict[str, List[Argument]] = {}
+        self.subcommands: List['Subcommand'] = []
+
+        meta = self._get_meta()
+        if meta is not None:
+            self._update_property('name', meta)
+            self._update_property('help', meta)
+            self._update_property('args', meta)
+            self._update_property('mutually_exclusive_args', meta)
+            self._update_property('argument_groups', meta)
+            self._update_property('subcommands', meta)
 
     @staticmethod
     def run(args) -> None:
@@ -74,6 +90,18 @@ class Subcommand(object):
 
     def add_parser(self, parser) -> None:
         self._parser = parser
+
+    def _get_meta(self) -> Optional[Meta]:
+        class_dict = self.__class__.__dict__
+        meta = 'Meta'
+        if meta in class_dict:
+            return class_dict[meta]
+        return None
+
+    def _update_property(self, name: str, meta: Meta):
+        if hasattr(meta, name):
+            meta_value = getattr(meta, name)
+            setattr(self, name, meta_value)
 
 
 class App(object):
