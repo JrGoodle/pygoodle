@@ -16,7 +16,8 @@ from .format import Format
 
 def run_command(command: Union[str, List[str]], cwd: Path = Path.cwd(), check: bool = True,
                 env: Optional[dict] = None, stdout=PIPE, stderr=STDOUT,
-                print_output: Optional[bool] = None, print_command: bool = False) -> CompletedProcess:
+                print_output: Optional[bool] = None, print_command: bool = False,
+                login: bool = False, interactive: bool = False, executable: Optional[str] = None) -> CompletedProcess:
 
     if print_output is None:
         print_output = CONSOLE.print_output
@@ -30,16 +31,37 @@ def run_command(command: Union[str, List[str]], cwd: Path = Path.cwd(), check: b
         output = Format.bold(output)
         CONSOLE.stdout(output)
 
-    if isinstance(command, list):
-        cmd = ' '.join(command)
-    else:
-        cmd = command
+    # if isinstance(command, list):
+    #     cmd = ' '.join(command)
+    # else:
+    #     cmd = command
+
+    if isinstance(command, str):
+        command = [command]
+    if login:
+        command = ['-l'] + command
+    if interactive:
+        command = ['-i'] + command
 
     cmd_env = os.environ.copy()
     if env is not None:
         cmd_env.update(env)
 
+    if executable is not None:
+        executable = executable
+        cmd_env['SHELL'] = executable
+
     # TODO: Replace universal_newlines with text when Python 3.6 support is dropped
-    completed_process = subprocess.run(cmd, cwd=cwd, env=cmd_env, shell=True, stdout=stdout,
-                                       stderr=stderr, universal_newlines=True, check=check)
+    completed_process = subprocess.run(
+        command,
+        cwd=cwd,
+        env=cmd_env,
+        shell=True,
+        stdout=stdout,
+        stderr=stderr,
+        universal_newlines=True,
+        check=check,
+        executable=executable
+    )
+
     return completed_process
