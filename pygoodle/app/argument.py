@@ -21,15 +21,15 @@ class Argument(object):
 
     @staticmethod
     def _get_name(args: Tuple[Any]) -> str:
-        names = [a for a in args if a.beginswith('--')]
+        names = [a for a in args if a.startswith('--')]
         if names:
             return Format.remove_prefix(names[0], '--')
 
-        names = [a for a in args if a.beginswith('-')]
+        names = [a for a in args if a.startswith('-')]
         if names:
             return Format.remove_prefix(names[0], '-')
 
-        names = [a for a in args if not a.beginswith('-')]
+        names = [a for a in args if not a.startswith('-')]
         if names:
             return names[0]
 

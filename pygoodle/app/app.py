@@ -8,7 +8,7 @@ import argparse
 import pkg_resources
 import sys
 from subprocess import CalledProcessError
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import argcomplete
 import pygoodle.reflection as reflect
@@ -16,6 +16,8 @@ from trio import MultiError
 
 from ..console import CONSOLE
 from .argument import Argument
+from .argument_group import ArgumentGroup
+from .mutually_exclusive_argument_group import MutuallyExclusiveArgumentGroup
 from .subcommand import Subcommand
 
 Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argparse._ArgumentGroup]  # noqa
@@ -26,10 +28,10 @@ class App(object):
     class Meta:
         name: str = 'command'
         entry_point: str = 'command'
-        args: Optional[List[Argument]] = None
-        mutually_exclusive_args: Optional[List[List[Argument]]] = None
-        argument_groups: Optional[Dict[str, List[Argument]]] = None
-        subcommands: Optional[List[Subcommand]] = None
+        args: List[Argument] = []
+        mutually_exclusive_args: List[MutuallyExclusiveArgumentGroup] = []
+        argument_groups: List[ArgumentGroup] = []
+        subcommands: List[Subcommand] = []
 
     def __init__(self):
         from rich.traceback import install
@@ -39,10 +41,10 @@ class App(object):
 
         self.name: str = 'command'
         self.entry_point: str = 'command'
-        self.args: Optional[List[Argument]] = None
-        self.mutually_exclusive_args: Optional[List[List[Argument]]] = None
-        self.argument_groups: Optional[Dict[str, List[Argument]]] = None
-        self.subcommands: Optional[List[Subcommand]] = None
+        self.args: List[Argument] = []
+        self.mutually_exclusive_args: List[MutuallyExclusiveArgumentGroup] = []
+        self.argument_groups: List[ArgumentGroup] = []
+        self.subcommands: List[Subcommand] = []
         self._update_meta()
 
         self.parser: argparse.ArgumentParser = self._create_parser()
@@ -110,11 +112,13 @@ class App(object):
 
         self._add_parser_arguments(parser, subcommand.args)
 
-        for args in subcommand.mutually_exclusive_args:
-            self._add_parser_arguments(parser.add_mutually_exclusive_group(), args)
+        for group in subcommand.mutually_exclusive_args:
+            parser_group = parser.add_mutually_exclusive_group(title=group.title, **group.options)
+            self._add_parser_arguments(parser_group, group.args)
 
-        for title, args in subcommand.argument_groups.items():
-            self._add_parser_arguments(parser.add_argument_group(title=title), args)
+        for group in subcommand.argument_groups:
+            parser_group = parser.add_argument_group(title=group.title, **group.options)
+            self._add_parser_arguments(parser_group, group.args)
 
         if subcommand.subcommands:
             command_subparsers = parser.add_subparsers(dest=f'{subcommand.name} subcommand', help=subcommand.help)
@@ -143,18 +147,18 @@ class App(object):
                 Argument('-v', '--version', action='version', version=version_message)
             ])
 
-            if self.args is not None:
+            if self.args:
                 self._add_parser_arguments(command_parser, self.args)
 
-            if self.mutually_exclusive_args is not None:
-                for args in self.mutually_exclusive_args:
-                    self._add_parser_arguments(command_parser.add_mutually_exclusive_group(), args)
+            for group in self.mutually_exclusive_args:
+                parser_group = command_parser.add_mutually_exclusive_group(title=group.title, **group.options)
+                self._add_parser_arguments(parser_group, group.args)
 
-            if self.argument_groups is not None:
-                for title, args in self.argument_groups.items():
-                    self._add_parser_arguments(command_parser.add_argument_group(title=title), args)
+            for group in self.argument_groups:
+                parser_group = command_parser.add_argument_group(title=group.title, **group.options)
+                self._add_parser_arguments(parser_group, group.args)
 
-            if self.subcommands is not None:
+            if self.subcommands:
                 self.subparsers = self.parser.add_subparsers(dest=f'{self.entry_point} subcommand')
                 for subcommand in self.subcommands:
                     self._add_subcommand(subcommand)
@@ -173,7 +177,7 @@ class App(object):
             meta = reflect.class_member(cls, 'Meta')
             if meta is not None:
                 self._update_attr('name', meta)
-                self._update_attr('entrypoint', meta)
+                self._update_attr('entry_point', meta)
                 self._update_attr('args', meta)
                 self._update_attr('mutually_exclusive_args', meta)
                 self._update_attr('argument_groups', meta)

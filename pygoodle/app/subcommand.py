@@ -5,10 +5,12 @@
 """
 
 import argparse
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import pygoodle.reflection as reflect
 from .argument import Argument
+from .argument_group import ArgumentGroup
+from .mutually_exclusive_argument_group import MutuallyExclusiveArgumentGroup
 
 
 class Subcommand(object):
@@ -17,8 +19,8 @@ class Subcommand(object):
         name: str = 'subcommand'
         help: str = f'{name} help'
         args: List[Argument] = []
-        mutually_exclusive_args: List[List[Argument]] = []
-        argument_groups: Dict[str, List[Argument]] = {}
+        mutually_exclusive_args: List[MutuallyExclusiveArgumentGroup] = []
+        argument_groups: List[ArgumentGroup] = {}
         subcommands: List['Subcommand'] = []
 
     def __init__(self):
@@ -26,8 +28,8 @@ class Subcommand(object):
         self.name: str = 'subcommand'
         self.help: str = f'{self.name} help'
         self.args: List[Argument] = []
-        self.mutually_exclusive_args: List[List[Argument]] = []
-        self.argument_groups: Dict[str, List[Argument]] = {}
+        self.mutually_exclusive_args: List[MutuallyExclusiveArgumentGroup] = []
+        self.argument_groups: List[ArgumentGroup] = []
         self.subcommands: List['Subcommand'] = []
         self._update_meta()
 

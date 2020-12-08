@@ -84,10 +84,10 @@ def main() -> None:
     try:
         parser = argparse.ArgumentParser()
         group = parser.add_mutually_exclusive_group()
-        mutually_exclusive_arguments = [
+        mutually_exclusive_args = [
             (['--build', '-b'], dict(action='store_true', help='clean build files'))
         ]
-        add_parser_arguments(group, mutually_exclusive_arguments)
+        add_parser_arguments(group, mutually_exclusive_args)
         args = parser.parse_args()
         if args.build:
             clean_build()
