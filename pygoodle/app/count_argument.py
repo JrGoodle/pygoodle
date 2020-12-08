@@ -4,16 +4,10 @@
 
 """
 
-from .argument import Argument
+from .single_argument import SingleArgument
 
 
-class CountArgument(Argument):
+class CountArgument(SingleArgument):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(
-            metavar='<n>',
-            nargs=1,
-            default=None,
-            type=int,
-            *args, **kwargs
-        )
+        super().__init__(*args, metavar='<n>', default=None, type=int, **kwargs)

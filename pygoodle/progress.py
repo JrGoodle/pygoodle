@@ -35,7 +35,7 @@ class DownloadProgressColumn(ProgressColumn):
         return output.rjust(self._width)
 
 
-class Progress(object):
+class Progress:
 
     def __init__(self, console: Optional[Console] = None, should_clear_lines: bool = True):
         self._delete_line_count: int = 0

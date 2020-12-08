@@ -22,7 +22,7 @@ class CancelledDownloadError(Exception):
     pass
 
 
-class FileInfo(object):
+class FileInfo:
 
     def __init__(self, path: Path, size: int):
         self.path: Path = path
@@ -33,7 +33,7 @@ class FileInfo(object):
         return str(self.path).lower() < str(other.path).lower()
 
 
-class DirectoryInfo(object):
+class DirectoryInfo:
 
     def __init__(self, ftp: ftplib.FTP, directory: Path, recursive: bool = True):
         self.directory: Path = directory
@@ -84,7 +84,7 @@ class DirectoryInfo(object):
         return sorted(file_paths + directory_paths, key=lambda path: str(path).lower())
 
 
-class FTP(object):
+class FTP:
 
     def __init__(self, host: str, user: str, password: str,
                  download_dir: Path, base_dir: Path = Path('/'), pool_size: int = 1):

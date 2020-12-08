@@ -9,9 +9,8 @@ from typing import Any, Dict, List
 from .argument import Argument
 
 
-class MutuallyExclusiveArgumentGroup(object):
+class MutuallyExclusiveArgumentGroup:
 
-    def __init__(self, args: List[Argument], title: str, **kwargs):
-        self.title: str = title
+    def __init__(self, args: List[Argument], **kwargs):
         self.args: List[Argument] = args
         self.options: Dict[str, Any] = kwargs

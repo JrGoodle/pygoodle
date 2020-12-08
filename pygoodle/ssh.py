@@ -9,7 +9,7 @@
 import paramiko
 
 
-class SecureShellCompletedProcess(object):
+class SecureShellCompletedProcess:
 
     def __init__(self, stdin, stdout, stderr):
         self.stdin = stdin
@@ -17,7 +17,7 @@ class SecureShellCompletedProcess(object):
         self.stderr: str = stderr
 
 
-class SecureShell(object):
+class SecureShell:
 
     def __init__(self, url: str, user: str, password: str):
         # key = paramiko.RSAKey(data=str(base64.b64decode(b'AAA...')))

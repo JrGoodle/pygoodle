@@ -7,7 +7,7 @@
 from .argument import Argument
 
 
-class BoolArgument(Argument):
+class SingleArgument(Argument):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, action='store_true', metavar=None, **kwargs)
+        super().__init__(*args, nargs=1, **kwargs)

@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 from .argument import Argument
 
 
-class ArgumentGroup(object):
+class ArgumentGroup:
 
     def __init__(self, args: List[Argument], title: str, **kwargs):
         self.title: str = title

@@ -12,7 +12,7 @@ import trio
 from pygoodle.console import disable_output
 
 
-class Task(object):
+class Task:
 
     def __init__(self, name: str):
         self.name: str = name
@@ -43,7 +43,7 @@ class Task(object):
         raise NotImplementedError
 
 
-class TaskPool(object):
+class TaskPool:
 
     def __init__(self, jobs: int):
         self._jobs: int = jobs

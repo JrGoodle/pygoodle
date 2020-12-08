@@ -4,6 +4,7 @@
 
 """
 
+# import inspect
 from typing import Any, List, Optional, Type
 
 
@@ -16,7 +17,7 @@ def all_subclasses(cls) -> List[Type]:
 
 
 def class_member(obj: Any, name: str) -> Optional[Any]:
-    class_dict = obj.__class__.__dict__
+    class_dict = obj.__dict__
     if name in class_dict:
         return class_dict[name]
     return None
@@ -32,6 +33,7 @@ def update_attr(obj: Any, name: str, value: Any, ignore_missing: bool = True):
 
 
 def method_resolution_order(obj, reverse: bool = False) -> List[Type]:
+    # classes = inspect.getmro(type(obj))
     classes = type.mro(type(obj))
     if not reverse:
         return classes

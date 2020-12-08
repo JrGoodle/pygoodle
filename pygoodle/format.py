@@ -11,7 +11,7 @@ from typing import Any, List, Optional
 import humanize
 
 
-class Format(object):
+class Format:
 
     @classmethod
     def bold(cls, output: Any) -> str:

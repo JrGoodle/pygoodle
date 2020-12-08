@@ -11,7 +11,7 @@ from pygoodle.format import Format
 from .file_type import FileType
 
 
-class FileWrapper(object):
+class FileWrapper:
 
     csv_header: List[str] = [
         'name',

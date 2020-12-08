@@ -8,7 +8,7 @@ import argparse
 import pkg_resources
 import sys
 from subprocess import CalledProcessError
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Type, Union
 
 import argcomplete
 import pygoodle.reflection as reflect
@@ -23,7 +23,7 @@ from .subcommand import Subcommand
 Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argparse._ArgumentGroup]  # noqa
 
 
-class App(object):
+class App:
 
     class Meta:
         name: str = 'command'
@@ -44,7 +44,7 @@ class App(object):
         self.args: List[Argument] = []
         self.mutually_exclusive_args: List[MutuallyExclusiveArgumentGroup] = []
         self.argument_groups: List[ArgumentGroup] = []
-        self.subcommands: List[Subcommand] = []
+        self.subcommands: List[Type[Subcommand]] = []
         self._update_meta()
 
         self.parser: argparse.ArgumentParser = self._create_parser()
@@ -113,7 +113,7 @@ class App(object):
         self._add_parser_arguments(parser, subcommand.args)
 
         for group in subcommand.mutually_exclusive_args:
-            parser_group = parser.add_mutually_exclusive_group(title=group.title, **group.options)
+            parser_group = parser.add_mutually_exclusive_group(**group.options)
             self._add_parser_arguments(parser_group, group.args)
 
         for group in subcommand.argument_groups:
@@ -123,7 +123,7 @@ class App(object):
         if subcommand.subcommands:
             command_subparsers = parser.add_subparsers(dest=f'{subcommand.name} subcommand', help=subcommand.help)
             for command in subcommand.subcommands:
-                self._add_subcommand(command, command_subparsers)
+                self._add_subcommand(command(), command_subparsers)
 
     def _create_parser(self) -> argparse.ArgumentParser:
         """Configure CLI parsers
@@ -144,14 +144,14 @@ class App(object):
             command_parser.set_defaults(func=action)
             version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
             self._add_parser_arguments(command_parser, [
-                Argument('-v', '--version', action='version', version=version_message)
+                Argument('-v', '--version', action='version', version=version_message, metavar=None)
             ])
 
             if self.args:
                 self._add_parser_arguments(command_parser, self.args)
 
             for group in self.mutually_exclusive_args:
-                parser_group = command_parser.add_mutually_exclusive_group(title=group.title, **group.options)
+                parser_group = command_parser.add_mutually_exclusive_group(**group.options)
                 self._add_parser_arguments(parser_group, group.args)
 
             for group in self.argument_groups:
@@ -159,9 +159,9 @@ class App(object):
                 self._add_parser_arguments(parser_group, group.args)
 
             if self.subcommands:
-                self.subparsers = self.parser.add_subparsers(dest=f'{self.entry_point} subcommand')
+                self.subparsers = command_parser.add_subparsers(dest=f'{self.entry_point} subcommand')
                 for subcommand in self.subcommands:
-                    self._add_subcommand(subcommand)
+                    self._add_subcommand(subcommand())
 
             return command_parser
         except Exception:
