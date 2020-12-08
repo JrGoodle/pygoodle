@@ -8,9 +8,10 @@ import argparse
 import pkg_resources
 import sys
 from subprocess import CalledProcessError
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import argcomplete
+import pygoodle.reflection as reflect
 from trio import MultiError
 
 from ..console import CONSOLE
@@ -22,34 +23,38 @@ Parser = Union[argparse.ArgumentParser, argparse._MutuallyExclusiveGroup, argpar
 
 class App(object):
 
-    def __init__(self, name: str, entry_point: Optional[str] = None,
-                 arguments: Optional[List[Argument]] = None,
-                 mutually_exclusive_args: Optional[List[List[Argument]]] = None,
-                 subcommands: Optional[List[Subcommand]] = None,
-                 argument_groups: Optional[Dict[str, List[Argument]]] = None,
-                 action: Optional[Callable] = None):
+    class Meta:
+        name: str = 'command'
+        entry_point: str = 'command'
+        args: Optional[List[Argument]] = None
+        mutually_exclusive_args: Optional[List[List[Argument]]] = None
+        argument_groups: Optional[Dict[str, List[Argument]]] = None
+        subcommands: Optional[List[Subcommand]] = None
+
+    def __init__(self):
         from rich.traceback import install
         install()
         import colorama
         colorama.init()
 
-        self.name = name
-        self.entry_point = name if entry_point is None else entry_point
-        self.parser: argparse.ArgumentParser = self._create_parser(arguments, mutually_exclusive_args,
-                                                                   argument_groups, action)
-        self.subparsers = self.parser.add_subparsers(dest=f'{self.entry_point} subcommand')
-        for subcommand in subcommands:
-            self._add_subcommand(subcommand)
+        self.name: str = 'command'
+        self.entry_point: str = 'command'
+        self.args: Optional[List[Argument]] = None
+        self.mutually_exclusive_args: Optional[List[List[Argument]]] = None
+        self.argument_groups: Optional[Dict[str, List[Argument]]] = None
+        self.subcommands: Optional[List[Subcommand]] = None
+        self._update_meta()
 
+        self.parser: argparse.ArgumentParser = self._create_parser()
         argcomplete.autocomplete(self.parser)
-        self.args: Any = self.parser.parse_args()
-        self.args: Any = self.process_args()
+        self.parsed_args: Any = self.parser.parse_args()
+        self.process_args()
 
-    def run(self) -> None:
+    def main(self) -> None:
         """command CLI main function"""
 
         try:
-            self.args.func(self.args)
+            self.parsed_args.func(self.parsed_args)
         except CalledProcessError as err:
             CONSOLE.stderr('** CalledProcessError **')
             CONSOLE.stderr(err)
@@ -76,8 +81,8 @@ class App(object):
             CONSOLE.print_exception()
             exit(1)
 
-    def process_args(self) -> Any:
-        return self.args
+    def process_args(self) -> None:
+        pass
 
     @staticmethod
     def _add_parser_arguments(parser: Parser, arguments: List[Argument]) -> None:
@@ -116,10 +121,7 @@ class App(object):
             for command in subcommand.subcommands:
                 self._add_subcommand(command, command_subparsers)
 
-    def _create_parser(self, args: Optional[List[Argument]] = None,
-                       mutually_exclusive_args: Optional[List[List[Argument]]] = None,
-                       argument_groups: Optional[Dict[str, List[Argument]]] = None,
-                       action: Optional[Callable] = None) -> argparse.ArgumentParser:
+    def _create_parser(self) -> argparse.ArgumentParser:
         """Configure CLI parsers
 
         :return: Configured argument parser for command
@@ -131,25 +133,48 @@ class App(object):
 
         try:
             command_parser = argparse.ArgumentParser(prog=self.entry_point)
-            action = command_help if action is None else action
+            if hasattr(self, 'run'):
+                action = getattr(self, 'run')
+            else:
+                action = command_help
             command_parser.set_defaults(func=action)
             version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
             self._add_parser_arguments(command_parser, [
                 Argument('-v', '--version', action='version', version=version_message)
             ])
 
-            if args is not None:
-                self._add_parser_arguments(command_parser, args)
+            if self.args is not None:
+                self._add_parser_arguments(command_parser, self.args)
 
-            if mutually_exclusive_args is not None:
-                for args in mutually_exclusive_args:
+            if self.mutually_exclusive_args is not None:
+                for args in self.mutually_exclusive_args:
                     self._add_parser_arguments(command_parser.add_mutually_exclusive_group(), args)
 
-            if argument_groups is not None:
-                for title, args in argument_groups.items():
+            if self.argument_groups is not None:
+                for title, args in self.argument_groups.items():
                     self._add_parser_arguments(command_parser.add_argument_group(title=title), args)
+
+            if self.subcommands is not None:
+                self.subparsers = self.parser.add_subparsers(dest=f'{self.entry_point} subcommand')
+                for subcommand in self.subcommands:
+                    self._add_subcommand(subcommand)
 
             return command_parser
         except Exception:
             CONSOLE.stderr('Failed to create parser')
             raise
+
+    def _update_attr(self, name: str, meta: Meta) -> None:
+        reflect.update_attr(self, name, meta)
+
+    def _update_meta(self) -> None:
+        classes = reflect.method_resolution_order(self, reverse=True)
+        for cls in classes:
+            meta = reflect.class_member(cls, 'Meta')
+            if meta is not None:
+                self._update_attr('name', meta)
+                self._update_attr('entrypoint', meta)
+                self._update_attr('args', meta)
+                self._update_attr('mutually_exclusive_args', meta)
+                self._update_attr('argument_groups', meta)
+                self._update_attr('subcommands', meta)

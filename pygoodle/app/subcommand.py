@@ -29,6 +29,7 @@ class Subcommand(object):
         self.mutually_exclusive_args: List[List[Argument]] = []
         self.argument_groups: Dict[str, List[Argument]] = {}
         self.subcommands: List['Subcommand'] = []
+        self._update_meta()
 
     @staticmethod
     def run(args) -> None:
