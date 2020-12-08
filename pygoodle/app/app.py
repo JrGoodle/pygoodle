@@ -8,7 +8,7 @@ import argparse
 import pkg_resources
 import sys
 from subprocess import CalledProcessError
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import argcomplete
 from trio import MultiError
@@ -41,14 +41,15 @@ class App(object):
         for subcommand in subcommands:
             self._add_subcommand(subcommand)
 
-    def run(self, process_args: Callable = lambda _: None) -> None:
+        argcomplete.autocomplete(self.parser)
+        self.args: Any = self.parser.parse_args()
+        self.args: Any = self.process_args()
+
+    def run(self) -> None:
         """command CLI main function"""
 
         try:
-            argcomplete.autocomplete(self.parser)
-            args = self.parser.parse_args()
-            process_args(args)
-            args.func(args)
+            self.args.func(self.args)
         except CalledProcessError as err:
             CONSOLE.stderr('** CalledProcessError **')
             CONSOLE.stderr(err)
@@ -74,6 +75,9 @@ class App(object):
             CONSOLE.stderr('** Unhandled exception **')
             CONSOLE.print_exception()
             exit(1)
+
+    def process_args(self) -> Any:
+        return self.args
 
     @staticmethod
     def _add_parser_arguments(parser: Parser, arguments: List[Argument]) -> None:
