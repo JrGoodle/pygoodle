@@ -11,7 +11,7 @@ import shutil
 from pathlib import Path
 from typing import List, Optional
 
-from .command import run_command
+import pygoodle.command as cmd
 
 
 def list_subdirectories(path: Path, recursive: bool = False) -> List[Path]:
@@ -70,7 +70,7 @@ def listdir_matching(directory: Path, pattern: str) -> List[Path]:
 
 
 def unar(file: Path) -> None:
-    run_command(f"unar '{file}'", cwd=file.parent)
+    cmd.run(f"unar '{file}'", cwd=file.parent)
 
 
 def create_backup_file(file: Path) -> None:
@@ -127,14 +127,17 @@ def restore_from_backup_file(file: Path) -> None:
 #             raise
 
 
-def is_directory_empty(path: Path) -> bool:
-    if path.exists() and path.is_dir():
-        if not os.listdir(path):
-            return True
-        else:
-            return False
-    else:
+def has_contents(path: Path) -> bool:
+    return not is_empty_dir(path)
+
+
+def is_empty_dir(path: Path) -> bool:
+    if not path.exists() or not path.is_dir():
         raise Exception(f"Directory at {path} doesn't exist")
+    if not os.listdir(path):
+        return True
+    else:
+        return False
 
 
 def create_file(path: Path, contents: str) -> None:

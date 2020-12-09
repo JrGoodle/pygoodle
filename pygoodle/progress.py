@@ -18,8 +18,8 @@ from .console import CONSOLE
 class DownloadProgressColumn(ProgressColumn):
 
     def __init__(self) -> None:
-        self._width: int = 0
         super().__init__()
+        self._width: int = 0
 
     def render(self, task: Task) -> str:
         if 'units' in task.fields and task.fields['units'] == 'bytes':

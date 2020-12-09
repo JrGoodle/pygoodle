@@ -130,8 +130,8 @@ class FTP:
 
         class DownloadTask(ProgressTask):
             def __init__(self, file: FileInfo):
-                self._file: FileInfo = file
                 super().__init__(file.name, units='bytes', total=file.size)
+                self._file: FileInfo = file
 
             def run(self) -> None:
                 def callback(data):

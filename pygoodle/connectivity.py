@@ -11,7 +11,7 @@ from subprocess import CompletedProcess
 from time import sleep
 from typing import Optional
 
-from .command import run_command
+import pygoodle.command as cmd
 
 
 class NetworkConnectionError(Exception):
@@ -23,13 +23,13 @@ def enable_network_connection(gateway_address: Optional[str]) -> [CompletedProce
     from sys import platform
     results = []
     if platform == "linux":
-        result = run_command("ip link set eth0 up", path)
+        result = cmd.run("ip link set eth0 up", path)
         results.append(result)
         if gateway_address is not None:
-            result = run_command(f"route add default gw {gateway_address}", path)
+            result = cmd.run(f"route add default gw {gateway_address}", path)
             results.append(result)
     elif platform == "darwin":
-        result = run_command("networksetup -setairportpower airport on", path)
+        result = cmd.run("networksetup -setairportpower airport on", path)
         sleep(2)
     elif platform == "win32":
         raise NotImplementedError
@@ -42,9 +42,9 @@ def disable_network_connection() -> CompletedProcess:
     path = Path()
     from sys import platform
     if platform == "linux":
-        result = run_command("ip link set eth0 down", path)
+        result = cmd.run("ip link set eth0 down", path)
     elif platform == "darwin":
-        result = run_command("networksetup -setairportpower airport off", path)
+        result = cmd.run("networksetup -setairportpower airport off", path)
         sleep(1)
     elif platform == "win32":
         raise NotImplementedError
@@ -57,7 +57,7 @@ def get_gateway_ip_address() -> Optional[str]:
     path = Path()
     from sys import platform
     if platform == "linux":
-        result = run_command("netstat -nr | awk '{print $2}' | head -n3 | tail -n1", path)
+        result = cmd.run("netstat -nr | awk '{print $2}' | head -n3 | tail -n1", path)
         return result.stdout.strip()
     elif platform == "darwin":
         return None

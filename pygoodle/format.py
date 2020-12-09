@@ -58,19 +58,6 @@ class Format:
         return markup.escape(str(output))
 
     @classmethod
-    def remove_prefix(cls, text: str, prefix: str) -> str:
-        """Remove prefix from string
-
-        :param str text: Text to remove prefix from
-        :param str prefix: Prefix to remove
-        :return: Text with prefix removed if present
-        """
-
-        if text.startswith(prefix):
-            return text[len(prefix):]
-        return text
-
-    @classmethod
     def size(cls, size: int) -> str:
         parts = humanize.naturalsize(size).split()
         assert len(parts) == 2
@@ -164,6 +151,13 @@ class Format:
 
     @classmethod
     def remove_prefix(cls, text: str, prefix: str) -> str:
+        """Remove prefix from string
+
+        :param str text: Text to remove prefix from
+        :param str prefix: Prefix to remove
+        :return: Text with prefix removed if present
+        """
+
         if text.startswith(prefix):
             return text[len(prefix):]
         return text

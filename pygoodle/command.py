@@ -14,10 +14,22 @@ from .console import CONSOLE
 from .format import Format
 
 
-def run_command(command: Union[str, List[str]], cwd: Path = Path.cwd(), check: bool = True,
-                env: Optional[dict] = None, stdout=PIPE, stderr=STDOUT,
-                print_output: Optional[bool] = None, print_command: bool = False,
-                login: bool = False, interactive: bool = False, executable: Optional[str] = None) -> CompletedProcess:
+def get_stdout(command: str, cwd: Path = Path.cwd()) -> str:
+    result = run(command, cwd=cwd, print_output=False, check=False)
+    if result.returncode != 0:
+        return ''
+    output: str = result.stdout
+    return output.strip()
+
+
+def run_silent(command: str, cwd: Path = Path.cwd()) -> CompletedProcess:
+    return run(command, cwd=cwd, check=False, print_output=False)
+
+
+def run(command: Union[str, List[str]], cwd: Path = Path.cwd(), check: bool = True,
+        env: Optional[dict] = None, stdout=PIPE, stderr=STDOUT,
+        print_output: Optional[bool] = None, print_command: bool = False,
+        login: bool = False, interactive: bool = False, executable: Optional[str] = None) -> CompletedProcess:
 
     if print_output is None:
         print_output = CONSOLE.print_output

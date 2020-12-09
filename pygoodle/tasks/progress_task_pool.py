@@ -15,11 +15,11 @@ from .task_pool import Task, TaskPool
 class ProgressTask(Task):
 
     def __init__(self, name: str, total: int = 1, units: str = '', start: bool = True):
+        super().__init__(name)
         self.progress: Optional[Progress] = None
         self.total: int = total
         self.units: str = units
         self.start: bool = start
-        super().__init__(name)
 
     def before_task(self) -> None:
         super().before_task()
@@ -38,10 +38,10 @@ class ProgressTaskPool(TaskPool):
 
     def __init__(self, jobs: int, title: str, units: str = '',
                  console: Console = CONSOLE.stdout_console):
+        super().__init__(jobs)
         self._title: str = title
         self._units = units
         self.progress: Progress = Progress(console=console)
-        super().__init__(jobs)
 
     def __enter__(self):
         self.progress.start()
