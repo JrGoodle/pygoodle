@@ -4,7 +4,6 @@
 
 """
 
-import pkg_resources
 from pathlib import Path
 
 import jsonschema
@@ -63,14 +62,14 @@ def save_yaml_file(yaml_output: dict, yaml_file: Path) -> None:
         raise
 
 
-def validate_yaml_file(parsed_yaml: dict, file_path: Path) -> None:
+def validate_yaml_file(parsed_yaml: dict, schema: str) -> None:
     """Validate yaml file
 
     :param dict parsed_yaml: Parsed yaml dictionary
-    :param Path file_path: Path to yaml file
+    :param str schema: json schema
     """
 
-    json_schema = _load_json_schema(file_path.stem)
+    json_schema = _load_json_schema(schema)
     try:
         jsonschema.validate(parsed_yaml, json_schema)
     except jsonschema.exceptions.ValidationError:
@@ -78,7 +77,7 @@ def validate_yaml_file(parsed_yaml: dict, file_path: Path) -> None:
         raise
 
 
-def dict_to_string(dictionary: dict) -> str:
+def yaml_string(dictionary: dict) -> str:
     """Return yaml string from python data structures
 
     :param dict dictionary: YAML python object
@@ -92,12 +91,11 @@ def dict_to_string(dictionary: dict) -> str:
         raise
 
 
-def _load_json_schema(file_prefix: str) -> dict:
+def _load_json_schema(schema: str) -> dict:
     """Return json schema file
 
-    :param str file_prefix: File prefix for json schema
+    :param str schema: File prefix for json schema
     :return: Loaded json dict
     """
 
-    clowder_config_schema = pkg_resources.resource_string(__name__, f"{file_prefix}.schema.json")
-    return pyyaml.safe_load(clowder_config_schema)
+    return pyyaml.safe_load(schema)
