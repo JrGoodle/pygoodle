@@ -38,7 +38,7 @@ def run(command: Union[str, List[str]], cwd: Path = Path.cwd(), check: bool = Tr
         stdout = None
         stderr = None
 
-    if print_command and print_output:
+    if print_command:
         output = Format.default(f"> {command}")
         output = Format.bold(output)
         CONSOLE.stdout(output)

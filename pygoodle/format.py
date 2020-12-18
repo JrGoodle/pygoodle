@@ -70,36 +70,36 @@ class Format:
         return f'[underline]{output}[/underline]'
 
     @classmethod
-    def separator(cls, message: str, character: str) -> str:
-        sep = character * len(message)
+    def separator(cls, message: Any, character: str) -> str:
+        sep = character * len(str(message))
         return f'[default bold]{sep}[/default bold]'
 
     @classmethod
-    def h1(cls, message: str, newline: bool = True) -> str:
+    def h1(cls, message: Any, newline: bool = True) -> str:
         output = '\n' if newline else ''
         output = f'{output}[default bold]{message}[/default bold]'
         sep = Format.separator(message, '=')
         return f'{output}\n{sep}'
 
     @classmethod
-    def h2(cls, message: str, newline: bool = True) -> str:
+    def h2(cls, message: Any, newline: bool = True) -> str:
         output = '\n' if newline else ''
         output = f'{output}[default bold]{message}[/default bold]'
         sep = Format.separator(message, '-')
         return f'{output}\n{sep}'
 
     @classmethod
-    def h3(cls, message: str, newline: bool = True) -> str:
+    def h3(cls, message: Any, newline: bool = True) -> str:
         output = '\n' if newline else ''
         return f'{output}[default bold underline]# {message}[/default bold underline]'
 
     @classmethod
-    def h4(cls, message: str, newline: bool = True) -> str:
+    def h4(cls, message: Any, newline: bool = True) -> str:
         output = '\n' if newline else ''
         return f'{output}[default bold underline]## {message}[/default bold underline]'
 
     @classmethod
-    def h5(cls, message: str, newline: bool = True) -> str:
+    def h5(cls, message: Any, newline: bool = True) -> str:
         output = '\n' if newline else ''
         return f'{output}[default bold underline]### {message}[/default bold underline]'
 
