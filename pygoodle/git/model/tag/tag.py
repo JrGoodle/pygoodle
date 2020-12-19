@@ -27,6 +27,16 @@ class Tag(Ref):
         super().__init__(path)
         self.name: str = name
 
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Tag):
+            return self.name == other.name and self.path == other.path
+        return False
+
+    @property
+    def sha(self) -> str:
+        """Commit sha"""
+        raise NotImplementedError
+
     @property
     def short_ref(self) -> str:
         """Short git ref"""

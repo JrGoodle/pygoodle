@@ -2,32 +2,20 @@
 
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+
 
 import pygoodle.command as cmd
 import pygoodle.filesystem as fs
 import pygoodle.git.process_output as process
 from pygoodle.format import Format
-from pygoodle.git.model import Branch, LocalBranch, Ref, Remote, RemoteBranch, Submodule, TrackingBranch
-from pygoodle.git.constants import *
+from pygoodle.git.constants import HEAD
 
 
-def get_remotes(path: Path) -> List[Remote]:
+def get_remotes_info(path: Path) -> Dict[str, Dict[str, str]]:
     output = cmd.get_stdout('git remote -v', cwd=path)
     remotes = process.remotes(output)
-    return [Remote(path, name, fetch_url=values[FETCH_URL], push_url=values[PUSH_URL])
-            for name, values in remotes.items()]
-
-
-def existing_remote(path: Path, name: str) -> bool:
-    remotes = get_remotes(path)
-    return any([name == r.name for r in remotes])
-
-
-def get_remote(path: Path, name: str) -> Optional[Remote]:
-    remotes = get_remotes(path)
-    remote = [r for r in remotes if r.name == name]
-    return remote[0] if remote else None
+    return remotes
 
 
 def get_remote_url(path: Path, remote_name: str) -> str:
@@ -133,29 +121,10 @@ def is_rebase_in_progress(path: Path) -> bool:
     return rebase_merge_exists or rebase_apply_exists
 
 
-def has_local_branch(path: Path, branch: str) -> bool:
-    branches = get_local_branches(path)
-    return branch in branches
-
-
-def has_local_tag(path: Path, tag: str) -> bool:
-    tags = get_local_tags(path)
-    return tag in tags
-
-
-def get_local_branches(path: Path) -> List[LocalBranch]:
+def get_local_branches_info(path: Path) -> List[str]:
     output = cmd.get_stdout("git branch", cwd=path)
-    lines = output.splitlines()
-
-    def process_line(line: str) -> str:
-        return line if line.startswith('*') else line.split()[1]
-
-    return [LocalBranch(path, process_line(line)) for line in lines]
-
-
-def get_local_tags(path: Path) -> List[str]:
-    info = get_local_tags_info(path)
-    return list(info.keys())
+    branches = process.local_branches(output)
+    return branches
 
 
 def get_local_tags_info(path: Path) -> Dict[str, str]:
@@ -168,23 +137,22 @@ def get_untracked_files(path: Path) -> List[str]:
     return output.split()
 
 
-def new_commits_count(path: Path, upstream: bool = False, remote: str = ORIGIN) -> int:
+def new_commits_count(path: Path, upstream: bool = False) -> int:
     """Returns the number of new commits
 
     :param Path path: Path to git repo
     :param bool upstream: Whether to find number of new upstream or local commits
-    :param str remote: Git remote name
     :return: Int number of new commits
     """
 
     local_branch = current_branch(path)
     upstream_branch = get_upstream_branch(path, local_branch)
-    if local_branch is None or upstream_branch is None:
+    if local_branch == HEAD or upstream_branch is None:
         return 0
 
     try:
         local_sha = get_branch_commit_sha(path, local_branch)
-        remote_sha = get_branch_commit_sha(path, upstream_branch.name, remote=remote)
+        remote_sha = get_branch_commit_sha(path, upstream_branch[0], remote=upstream_branch[1])
         commits = f'{local_sha}...{remote_sha}'
         output = cmd.get_stdout(f'git rev-list --count --left-right {commits}', cwd=path)
         index = 1 if upstream else 0
@@ -206,34 +174,30 @@ def is_submodule_placeholder(path: Path) -> bool:
     return path.is_dir() and fs.is_empty_dir(path)
 
 
-def has_submodules(path: Path) -> bool:
-    submodules = get_submodules(path)
-    return bool(submodules)
-
-
-def get_submodules(path: Path, initialized: bool = False) -> List[Submodule]:
-    submodule_info = get_submodule_info(path, initialized=initialized)
-    submodules = []
-    for key in submodule_info.keys():
-        url = submodule_info[key]['url']
-        submodule_path = Path(submodule_info[key]['path'])
-        branch = submodule_info[key]['branch'] if 'branch' in submodule_info[key] else None
-        active = submodule_info[key]['active'] if 'active' in submodule_info[key] else None
-        active = True if active == 'true' else False
-        submodule_commit = get_submodule_commit(path, submodule_path)
-        submodule = Submodule(path, submodule_path, url=url, commit=submodule_commit, branch=branch, active=active)
-        submodules.append(submodule)
-    return submodules
-
-
 def get_submodule_commit(path: Path, submodule_path: Path) -> str:
     output = cmd.get_stdout(f'git ls-tree master {submodule_path}', cwd=path)
     return output.split()[2]
 
 
-def get_submodule_info(path: Path, initialized: bool) -> Dict[str, Dict[str, str]]:
-    file = '.git/config' if initialized else '.gitmodules'
-    output = get_config_info(path, 'submodule', file)
+def get_submodules_info(path: Path) -> Dict[Path, Dict[str, str]]:
+    output = get_config_info(path, 'submodule', '.gitmodules')
+    submodules = process.submodules(output)
+    output = get_config_info(path, 'submodule', '.git/config')
+    git_config_submodules = process.submodules(output)
+    for name, values in git_config_submodules.items():
+        for key, value in values.items():
+            submodules[name][key] = value
+    return submodules
+
+
+def get_submodules_info_from_gitmodules(path: Path) -> Dict[Path, Dict[str, str]]:
+    output = get_config_info(path, 'submodule', '.gitmodules')
+    submodules = process.submodules(output)
+    return submodules
+
+
+def get_submodules_info_from_git_config(path: Path) -> Dict[Path, Dict[str, str]]:
+    output = get_config_info(path, 'submodule', '.gitmodules')
     submodules = process.submodules(output)
     return submodules
 
@@ -256,8 +220,8 @@ def get_submodule_git_dir(path: Path) -> Optional[Path]:
 def is_submodule_initialized(path: Path, submodule_path: Path) -> bool:
     if not repo_has_submodule(path, submodule_path):
         return False
-    submodules = get_submodules(path, initialized=True)
-    return bool(submodules)
+    submodules = get_submodules_info_from_git_config(path)
+    return submodule_path in submodules.keys()
 
 
 def is_submodule_cloned(path: Path, submodule_path: Path) -> bool:
@@ -268,8 +232,8 @@ def is_submodule_cloned(path: Path, submodule_path: Path) -> bool:
 
 
 def repo_has_submodule(path: Path, submodule_path: Path) -> bool:
-    submodules = get_submodules(path)
-    return any([s.submodule_path == submodule_path for s in submodules])
+    submodules = get_submodules_info_from_gitmodules(path)
+    return submodule_path in submodules.keys()
 
 
 def lfs_hooks_installed(path: Path) -> bool:
@@ -345,22 +309,25 @@ def stash(path: Path) -> CompletedProcess:
 def status(path: Path, verbose: bool = False) -> CompletedProcess:
     args = ''
     if verbose:
-        args = '-vv'
+        args = ' -vv '
     return cmd.run(f'git status {args}', cwd=path)
 
 
 def current_head_commit_sha(path: Path, short: bool = False) -> str:
     args = ''
     if short:
-        args = '--short'
+        args = ' --short '
     return cmd.get_stdout(f'git rev-parse {args} {HEAD}', cwd=path)
 
 
-def get_branch_commit_sha(path: Path, branch: str, remote: Optional[str] = None) -> str:
+def get_branch_commit_sha(path: Path, branch: str, remote: Optional[str] = None) -> Optional[str]:
     if remote is not None:
-        return cmd.get_stdout(f"git rev-parse {remote}/{branch}", cwd=path)
+        sha = cmd.get_stdout(f"git rev-parse {remote}/{branch}", cwd=path)
     else:
-        return cmd.get_stdout(f"git rev-parse {branch}", cwd=path)
+        sha = cmd.get_stdout(f"git rev-parse {branch}", cwd=path)
+    if not sha:
+        return None
+    return sha
 
 
 def add(path: Path, files: List[str]) -> CompletedProcess:
@@ -394,17 +361,17 @@ def check_ref_format(refname: str) -> bool:
     return result.returncode == 0
 
 
-def reset_timestamp(path: Path, timestamp: str, ref: Ref, author: Optional[str] = None) -> CompletedProcess:
+def reset_timestamp(path: Path, timestamp: str, ref: str, author: Optional[str] = None) -> CompletedProcess:
     """Reset branch to upstream or checkout tag/sha as detached HEAD
 
     :param Path path: Path to git repo
     :param str timestamp: Commit ref timestamp
     :param Optional[str] author: Commit author
-    :param Ref ref: Reference ref
+    :param str ref: Reference ref
     :raise ClowderGitError:
     """
 
-    rev = find_rev_by_timestamp(path, timestamp, ref.short_ref, author=author)
+    rev = find_rev_by_timestamp(path, timestamp, ref, author=author)
     return checkout(path, rev)
 
 
@@ -425,6 +392,15 @@ def foreach_submodule(path: Path, command: str, recursive: bool = False) -> Comp
 
 def clean(path: Path, untracked_directories: bool = False, force: bool = False,
           ignored: bool = False, untracked_files: bool = False) -> CompletedProcess:
+    """Discard changes for repo
+
+    :param Path path: Path to git repo
+    :param bool untracked_directories: ``d`` Remove untracked directories in addition to untracked files
+    :param bool force: ``f`` Delete directories with .git sub directory or file
+    :param bool ignored: ``X`` Remove only files ignored by git
+    :param bool untracked_files: ``x`` Remove all untracked files
+    """
+
     args = '-'
     if untracked_directories:
         args += 'd'
@@ -447,36 +423,36 @@ def local_branch_exists(path: Path, branch: str) -> bool:
     return result.returncode == 0
 
 
-def get_tracking_branches(path: Path) -> List[TrackingBranch]:
-    local_branches = get_local_branches(path)
-
-    upstream_branches = []
+def get_tracking_branches_info(path: Path) -> Dict[str, Dict[str, str]]:
+    local_branches = get_local_branches_info(path)
+    upstream_branches = {}
     for branch in local_branches:
-        upstream_branch = get_upstream_branch(path, branch.name)
-        if upstream_branch is not None and isinstance(upstream_branch, RemoteBranch):
-            upstream_branches.append(upstream_branch)
-    return [TrackingBranch(path, b.name, upstream_branch=b) for b in upstream_branches]
+        upstream_branch = get_upstream_branch(path, branch)
+        push_branch = get_push_branch(path, branch)
+        if upstream_branch is not None:
+            upstream_branches[branch] = {
+                'upstream_branch': upstream_branch[0],
+                'upstream_remote': upstream_branch[1],
+                'push_branch': push_branch[0],
+                'push_remote': push_branch[1]
+            }
+    return upstream_branches
 
 
-def get_upstream_branch(path: Path, branch: str) -> Optional[Branch]:
+def get_upstream_branch(path: Path, branch: str) -> Optional[Tuple[str, Optional[str]]]:
     return rev_parse_tracking_branch(path, branch, 'upstream')
 
 
-def get_push_branch(path: Path, branch: str) -> Optional[Branch]:
+def get_push_branch(path: Path, branch: str) -> Optional[Tuple[str, Optional[str]]]:
     return rev_parse_tracking_branch(path, branch, 'push')
 
 
-def rev_parse_tracking_branch(path: Path, branch: str, arg: str) -> Optional[Branch]:
+def rev_parse_tracking_branch(path: Path, branch: str, arg: str) -> Optional[Tuple[str, Optional[str]]]:
     try:
         output = cmd.get_stdout(f'git rev-parse --symbolic-full-name {branch}@{{{arg}}}', cwd=path)
     except CalledProcessError:
         return None
-    remote, branch = process.tracking_branches(output)
-    if remote is None:
-        return LocalBranch(path, branch)
-    else:
-        remote = get_remote(path, remote)
-        return RemoteBranch(path, branch, remote=remote)
+    return process.tracking_branches(output)
 
 
 def get_full_branch_ref(path: Path, branch: str) -> str:
@@ -524,7 +500,8 @@ def git_config_unset_all_local(path: Path, variable: str) -> CompletedProcess:
     try:
         return cmd.run(f'git config --local --unset-all {variable}', cwd=path)
     except CalledProcessError as err:
-        if err.returncode != 5:  # git returns error code 5 when trying to unset variable that doesn't exist
+        # git returns error code 5 when trying to unset variable that doesn't exist
+        if err.returncode != 5:
             raise
 
 
@@ -615,13 +592,6 @@ def is_shallow_repo(path: Path) -> bool:
     return output == "true"
 
 
-def has_remote_branch(path: Path, branch: str, remote: Remote) -> bool:
-    branches = get_remote_branches(path, remote=remote)
-    return branch in [b.name for b in branches]
-
-
-def get_remote_branches(path: Path, remote: Remote) -> List[RemoteBranch]:
+def get_remote_branches_info(path: Path, remote: str) -> Tuple[List[str], Optional[str]]:
     output = cmd.get_stdout(f'git branch -r {remote}', cwd=path)
-    _, branches = process.remote_branches(output, remote=remote.name)
-    branches = [RemoteBranch(path, b, remote) for b in branches]
-    return branches
+    return process.remote_branches(output, remote=remote)

@@ -4,11 +4,9 @@
 
 """
 
-from pathlib import Path
-
+import pygoodle.git.model.factory as factory
 import pygoodle.git.online as online
-from .. import Remote
-from . import Tag
+from pygoodle.git.model import Remote, Tag
 
 
 class RemoteTag(Tag):
@@ -19,16 +17,25 @@ class RemoteTag(Tag):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, path: Path, name: str, remote: Remote):
+    def __init__(self, name: str, remote: Remote):
         """GitRepo __init__
 
-        :param Path path: Path to git repo
         :param str name: Tag name
         :param Remote remote: Remote
         """
 
-        super().__init__(path, name)
+        super().__init__(remote.path, name)
         self.remote: Remote = remote
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, RemoteTag):
+            return super().__eq__(other) and self.remote.name == other.remote.name
+        return False
+
+    @property
+    def sha(self) -> str:
+        """Commit sha"""
+        return online.get_remote_tag_sha(self.path, self.name, self.remote.name)
 
     def create(self) -> None:
         raise NotImplementedError
@@ -38,4 +45,5 @@ class RemoteTag(Tag):
 
     @property
     def exists(self) -> bool:
-        return online.has_remote_tag(self.path, tag=self.name, remote=self.remote.name)
+        tags = factory.get_remote_tags(self.remote)
+        return any([tag == self for tag in tags])

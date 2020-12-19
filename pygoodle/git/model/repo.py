@@ -7,10 +7,14 @@
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
+import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
+from pygoodle.console import CONSOLE
+from pygoodle.format import Format
 from pygoodle.git.constants import ORIGIN
-from pygoodle.git import Commit, LocalBranch, Ref, Remote, Submodule, TrackingBranch
+from pygoodle.git.model import Branch, Commit, LocalBranch, Ref, Remote, Submodule, TrackingBranch
+from pygoodle.git.decorators import error_msg
 
 
 class Repo:
@@ -34,7 +38,10 @@ class Repo:
     @staticmethod
     def clone(path: Path, url: str, depth: Optional[int] = None, ref: Optional[Ref] = None,
               jobs: Optional[int] = None) -> 'Repo':
-        online.clone(path, url=url, depth=depth, ref=ref, jobs=jobs)
+        branch = ref.short_ref if isinstance(ref, Branch) else None
+        online.clone(path, url=url, depth=depth, branch=branch, jobs=jobs)
+        if not isinstance(ref, Branch):
+            offline.checkout(path, ref.sha)
         remote = Remote(path, ORIGIN, fetch_url=url)
         return Repo(path, default_remote=remote)
 
@@ -60,29 +67,41 @@ class Repo:
 
     @property
     def remotes(self) -> List[Remote]:
-        return offline.get_remotes(self.path)
+        return factory.get_remotes(self.path)
 
     @property
     def submodules(self) -> Tuple[Submodule, ...]:
-        submodules = offline.get_submodules(self.path)
-        return tuple(sorted(submodules, key=lambda s: s.path.name))
+        submodules = factory.get_submodules(self.path)
+        return tuple(sorted(submodules, key=lambda s: s.submodule_path))
 
     @property
     def tracking_branches(self) -> Tuple[TrackingBranch, ...]:
-        branches = offline.get_tracking_branches(self.path)
+        branches = factory.get_tracking_branches(self.path)
         return tuple(sorted(branches, key=lambda b: b.name))
 
     @property
     def branches(self) -> Tuple[LocalBranch, ...]:
-        branches = offline.get_local_branches(self.path)
+        branches = factory.get_local_branches(self.path)
         return tuple(sorted(branches, key=lambda b: b.name))
 
     @property
     def exists(self) -> bool:
         return offline.is_repo_cloned(self.path)
 
+    def is_valid(self, allow_missing: bool = True) -> bool:
+        """Validate repo state
+
+        :param bool allow_missing: Whether to allow validation to succeed with missing repo
+        :return: True, if repo not dirty or doesn't exist on disk
+        """
+
+        if not self.exists:
+            return allow_missing
+
+        return self.is_dirty or self.is_rebase_in_progress or self.has_untracked_files
+
     def remote(self, name: str) -> Optional[Remote]:
-        return offline.get_remote(self.path, name=name)
+        return factory.get_remote(self.path, name)
 
     @property
     def current_timestamp(self) -> str:
@@ -96,41 +115,131 @@ class Repo:
         sha = offline.current_head_commit_sha(self.path, short=short)
         return Commit(self.path, sha)
 
+    @error_msg('Failed to abort rebase')
     def abort_rebase(self) -> None:
+        if not self.is_rebase_in_progress:
+            return
+        CONSOLE.stdout(' - Abort rebase in progress')
         offline.abort_rebase(self.path)
 
+    @error_msg('Failed to add files to git index')
     def add(self, files: List[str]) -> None:
+        CONSOLE.stdout(' - Add files to git index')
         offline.add(self.path, files=files)
 
+    @error_msg('Failed to commit current changes')
     def commit(self, message: str) -> None:
+        CONSOLE.stdout(' - Commit current changes')
         offline.commit(self.path, message=message)
 
     def clean(self, untracked_directories: bool = False, force: bool = False,
               ignored: bool = False, untracked_files: bool = False) -> None:
+        """Discard changes for repo
+
+        :param bool untracked_directories: ``d`` Remove untracked directories in addition to untracked files
+        :param bool force: ``f`` Delete directories with .git sub directory or file
+        :param bool ignored: ``X`` Remove only files ignored by git
+        :param bool untracked_files: ``x`` Remove all untracked files
+        """
+        CONSOLE.stdout(' - Clean repo')
         offline.clean(self.path, untracked_directories=untracked_directories,
                       force=force, ignored=ignored, untracked_files=untracked_files)
 
+    @error_msg('Failed to pull git lfs files')
     def pull_lfs(self) -> None:
+        CONSOLE.stdout(' - Pull git lfs files')
         online.pull_lfs(self.path)
 
+    @error_msg('Failed to reset repo')
     def reset(self, ref: Union[Ref, str] = ORIGIN, hard: bool = False) -> None:
         if isinstance(ref, Ref):
             ref = ref.short_ref
+        CONSOLE.stdout(f' - Reset repo to {Format.magenta(ref)}')
         offline.reset(self.path, ref=ref, hard=hard)
 
+    @error_msg('Failed to stash current changes')
     def stash(self) -> None:
+        if not self.is_dirty:
+            CONSOLE.stdout(' - No changes to stash')
+            return
+        CONSOLE.stdout(' - Stash current changes')
         offline.stash(self.path)
 
     def status(self, verbose: bool = False) -> None:
         offline.status(self.path, verbose=verbose)
 
+    @error_msg('Failed to update git lfs hooks')
     def install_lfs_hooks(self) -> None:
+        CONSOLE.stdout(' - Update git lfs hooks')
         offline.install_lfs_hooks(self.path)
 
     def reset_timestamp(self, timestamp: str, ref: Ref, author: Optional[str] = None) -> None:
-        offline.reset_timestamp(self.path, timestamp=timestamp, ref=ref, author=author)
+        offline.reset_timestamp(self.path, timestamp=timestamp, ref=ref.short_ref, author=author)
 
     def update_submodules(self, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
                           jobs: Optional[int] = None, recursive: bool = False) -> None:
         online.update_submodules(self.path, init=init, depth=depth, single_branch=single_branch,
                                  jobs=jobs, recursive=recursive)
+
+    def print_branches(self) -> None:
+        """Print local git branches"""
+
+        current_branch = self.current_branch
+        for branch in self.branches:
+            if branch.name == current_branch:
+                branch_name = Format.green(branch[2:])
+                CONSOLE.stdout(f"* {branch_name}")
+            else:
+                CONSOLE.stdout(branch)
+
+    def print_validation(self) -> None:
+        """Print validation messages"""
+
+        if not self.exists:
+            return
+
+        if not self.is_valid:
+            CONSOLE.stdout(f'Dirty repo. Please stash, commit, or discard your changes')
+
+    def groom(self, untracked_directories: bool = False, force: bool = False,
+              ignored: bool = False, untracked_files: bool = False) -> None:
+        self.clean(untracked_directories=untracked_directories,
+                   force=force, ignored=ignored, untracked_files=untracked_files)
+        self.reset()
+        if self.is_rebase_in_progress:
+            self.abort_rebase()
+
+    @property
+    def formatted_ref(self) -> str:
+        """Formatted project repo ref"""
+
+        local_commits_count = offline.new_commits_count(self.path)
+        # TODO: Specify correct remote
+        upstream_commits_count = offline.new_commits_count(self.path, upstream=True)
+        no_local_commits = local_commits_count == 0 or local_commits_count == '0'
+        no_upstream_commits = upstream_commits_count == 0 or upstream_commits_count == '0'
+        if no_local_commits and no_upstream_commits:
+            status = ''
+        else:
+            local_commits_output = Format.yellow(f'+{local_commits_count}')
+            upstream_commits_output = Format.red(f'-{upstream_commits_count}')
+            status = f'({local_commits_output}/{upstream_commits_output})'
+
+        if self.is_detached:
+            return Format.magenta(Format.escape(f'[HEAD @ {self.current_commit()}]'))
+        return Format.magenta(Format.escape(f'[{self.current_branch}]')) + status
+
+    def print_remote_branches(self) -> None:
+        """Print remote git branches"""
+
+        # FIXME: Update this to work
+        # Need to get all local, remote, and tracking branches and print them
+        # for remote in self.remotes:
+        #     for branch in remote.branches:
+        #     if ' -> ' in branch:
+        #         components = branch.split(' -> ')
+        #         local_branch = components[0]
+        #         remote_branch = components[1]
+        #         CONSOLE.stdout(f"  {Format.red(local_branch)} -> {remote_branch}")
+        #     else:
+        #         CONSOLE.stdout(Format.red(branch))

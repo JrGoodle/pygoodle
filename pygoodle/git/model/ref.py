@@ -5,8 +5,12 @@
 """
 
 from pathlib import Path
+from typing import Optional
 
 import pygoodle.git.offline as offline
+from pygoodle.console import CONSOLE
+from pygoodle.format import Format
+from pygoodle.git.log import LOG
 
 
 class Ref:
@@ -24,6 +28,16 @@ class Ref:
 
         self.path: Path = path
         self.check_ref_format(self.formatted_ref)
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Ref):
+            return self.path == other.path
+        return False
+
+    @property
+    def sha(self) -> Optional[str]:
+        """Commit sha"""
+        raise NotImplementedError
 
     @property
     def short_ref(self) -> str:
@@ -86,5 +100,13 @@ class Ref:
         prefix = "refs/tags/"
         return tag if tag.startswith(prefix) else f"{prefix}{tag}"
 
-    def checkout(self) -> None:
-        offline.checkout(self.path, ref=self.short_ref)
+    def checkout(self, check: bool = True) -> None:
+        CONSOLE.stdout(f' - Checkout {Format.magenta(self.short_ref)}')
+        try:
+            offline.checkout(self.path, ref=self.short_ref)
+        except Exception:  # noqa
+            message = f'Failed to checkout {Format.magenta(self.short_ref)}'
+            if check:
+                LOG.error(message)
+                raise
+            CONSOLE.stdout(f' - {message}')

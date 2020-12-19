@@ -6,10 +6,12 @@
 
 from typing import Optional
 
+import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
-from .. import Commit
-from . import Branch, RemoteBranch
+from pygoodle.console import CONSOLE
+from pygoodle.git.decorators import error_msg, not_detached
+from pygoodle.git.model import Branch, Commit, RemoteBranch
 
 
 class LocalBranch(Branch):
@@ -19,6 +21,11 @@ class LocalBranch(Branch):
     :ivar str name: Branch name
     """
 
+    @property
+    def sha(self) -> Optional[str]:
+        """Commit sha"""
+        return offline.get_branch_commit_sha(self.path, self.name)
+
     def create(self) -> None:
         offline.create_local_branch(self.path, branch=self.name)
 
@@ -27,14 +34,18 @@ class LocalBranch(Branch):
 
     @property
     def exists(self) -> bool:
-        return offline.has_local_branch(self.path, branch=self.name)
+        branches = factory.get_local_branches(self.path)
+        return any([branch == self for branch in branches])
 
     @property
     def commit(self) -> Commit:
         sha = offline.get_branch_commit_sha(self.path, branch=self.name)
         return Commit(self.path, sha)
 
+    @not_detached
+    @error_msg('Failed to push local changes')
     def push(self, branch: Optional[RemoteBranch] = None, force: bool = False) -> None:
+        CONSOLE.stdout(' - Push local changes')
         remote_branch = None
         remote = None
         if branch is not None:

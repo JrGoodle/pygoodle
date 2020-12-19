@@ -4,9 +4,9 @@
 
 """
 
+import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
-
-from . import Tag
+from pygoodle.git.model import Tag
 
 
 class LocalTag(Tag):
@@ -16,6 +16,11 @@ class LocalTag(Tag):
     :ivar str formatted_ref: Formatted ref
     """
 
+    @property
+    def sha(self) -> str:
+        """Commit sha"""
+        return offline.get_tag_commit_sha(self.path, self.name)
+
     def create(self) -> None:
         raise NotImplementedError
 
@@ -24,4 +29,5 @@ class LocalTag(Tag):
 
     @property
     def exists(self) -> bool:
-        return offline.has_local_tag(self.path, tag=self.name)
+        tags = factory.get_local_tags(self.path)
+        return any([tag == self for tag in tags])

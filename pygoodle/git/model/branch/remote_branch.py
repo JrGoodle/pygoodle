@@ -4,8 +4,9 @@
 
 """
 
-from pathlib import Path
+from typing import Optional
 
+import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from .. import Commit, Remote
@@ -20,23 +21,35 @@ class RemoteBranch(Branch):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, path: Path, name: str, remote: Remote):
+    def __init__(self, name: str, remote: Remote, is_default: bool = False):
         """Branch __init__
 
-        :param Path path: Path to git repo
         :param str name: Branch name
         :param Remote remote: Remote
+        :param bool is_default: Is branch default for remote repo
         """
 
-        super().__init__(path, name)
+        super().__init__(remote.path, name)
         self.remote: Remote = remote
+        self.is_default: bool = is_default
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, RemoteBranch):
+            return super().__eq__(other) and self.remote.name == other.remote.name
+        return False
+
+    @property
+    def sha(self) -> Optional[str]:
+        """Commit sha"""
+        return offline.get_branch_commit_sha(self.path, self.name, self.remote.name)
 
     def delete(self) -> None:
         online.delete_remote_branch(self.path, branch=self.name, remote=self.remote.name)
 
     @property
     def exists(self) -> bool:
-        return online.has_remote_branch(self.path, branch=self.name, remote=self.remote.name)
+        branches = factory.get_remote_branches(self.remote)
+        return any([branch == self for branch in branches])
 
     def create(self) -> None:
         raise NotImplementedError

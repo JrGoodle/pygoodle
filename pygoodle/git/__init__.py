@@ -4,6 +4,8 @@
 
 """
 
+from typing import Dict
+
 from .model import (
     Branch,
     Commit,
@@ -20,4 +22,13 @@ from .model import (
     TrackingBranch
 )
 
-from .constants import *
+from .constants import (
+    HEAD,
+    ORIGIN,
+    FETCH_URL,
+    PUSH_URL,
+    GITMODULES,
+    GIT_CONFIG
+)
+
+GitConfig = Dict[str, str]

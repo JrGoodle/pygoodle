@@ -1,5 +1,6 @@
 """Misc git utils"""
 
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from pygoodle.format import Format
@@ -30,7 +31,12 @@ def shas(output: str, prefix: str) -> Dict[str, str]:
     return items
 
 
-def tracking_branches(output: str) -> Tuple[Optional[str], str]:
+def local_branches(output: str) -> List[str]:
+    lines = output.splitlines()
+    return [line.split()[1].strip() if line.startswith('*') else line.strip() for line in lines]
+
+
+def tracking_branches(output: str) -> Tuple[str, Optional[str]]:
     # Expected output format:
     # > git rev-parse --symbolic-full-name git-old@{upstream}
     # refs/heads/git
@@ -45,25 +51,25 @@ def tracking_branches(output: str) -> Tuple[Optional[str], str]:
         branch = components[3]
     else:
         raise Exception('Failed to parse tracking branch output')
-    return remote, branch
+    return branch, remote
 
 
-def remote_branches(output: str, remote: str) -> Tuple[Optional[str], List[str]]:
+def remote_branches(output: str, remote: str) -> Tuple[List[str], Optional[str]]:
     # TODO: Add expected output example
     lines = output.strip().splitlines()
-    items = []
+    branches = []
     default_branch = None
     for line in lines:
         components = line.split()
         if len(components) == 1:
             name = Format.remove_prefix(components[0].strip(), f'{remote}/')
-            items.append(name)
+            branches.append(name)
         elif len(components) == 3 and components[1] == '->':
             name = Format.remove_prefix(components[2].strip(), f'{remote}/')
             default_branch = name
         else:
             raise Exception('Wrong number of components for remote branch')
-    return default_branch, items
+    return branches, default_branch
 
 
 def remotes(output: str) -> Dict[str, Dict[str, str]]:
@@ -86,7 +92,7 @@ def remotes(output: str) -> Dict[str, Dict[str, str]]:
     return _remotes
 
 
-def submodules(output: List[str]) -> Dict[str, Dict[str, str]]:
+def submodules(output: List[str]) -> Dict[Path, Dict[str, str]]:
     # Expected output format for .gitmodules:
     # submodule.path/to/Optional.path path/to/Optional
     # submodule.path/to/Optional.url https://github.com/akrzemi1/Optional.git
@@ -100,7 +106,7 @@ def submodules(output: List[str]) -> Dict[str, Dict[str, str]]:
         submodule_info = submodule_info.split()
         value = submodule_info[1]
         components = submodule_info[0].split('.')
-        path = components[1]
+        path = Path(components[1])
         key = components[2]
         if path in _submodules.keys():
             _submodules[path][key] = value

@@ -5,6 +5,7 @@
 """
 
 from pathlib import Path
+from typing import Optional
 
 from .. import Ref
 
@@ -26,6 +27,16 @@ class Branch(Ref):
 
         super().__init__(path)
         self.name: str = name
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Branch):
+            return super().__eq__(other) and self.name == other.name
+        return False
+
+    @property
+    def sha(self) -> Optional[str]:
+        """Commit sha"""
+        raise NotImplementedError
 
     @property
     def short_ref(self) -> str:

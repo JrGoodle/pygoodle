@@ -25,7 +25,17 @@ class Commit(Ref):
         """
 
         super().__init__(path)
-        self.sha: str = sha
+        self._sha: str = sha
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Commit):
+            return super().__eq__(other) and self.path == other.path
+        return False
+
+    @property
+    def sha(self) -> str:
+        """Commit sha"""
+        return self._sha
 
     @property
     def short_ref(self) -> str:

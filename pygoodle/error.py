@@ -19,3 +19,7 @@ class MissingFileError(Exception):
 
 class UnknownArgumentError(Exception):
     pass
+
+
+class GitError(Exception):
+    pass
