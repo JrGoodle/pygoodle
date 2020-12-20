@@ -53,9 +53,9 @@ class RemoteBranch(Branch):
     @error_msg('Failed to delete remote branch')
     def delete(self) -> None:
         if factory.has_remote_branch(self.path, self.name):
-            CONSOLE.stdout(f" - Remote branch {Format.magenta(self.short_ref)} doesn't exist")
+            CONSOLE.stdout(f" - Remote branch {Format.Git.ref(self.short_ref)} doesn't exist")
             return
-        CONSOLE.stdout(f' - Delete remote branch {Format.magenta(self.short_ref)}')
+        CONSOLE.stdout(f' - Delete remote branch {Format.Git.ref(self.short_ref)}')
         online.delete_remote_branch(self.path, branch=self.name, remote=self.remote.name)
 
     @property
@@ -66,9 +66,9 @@ class RemoteBranch(Branch):
     @error_msg('Failed to create remote branch')
     def create(self) -> None:
         if self.exists:
-            CONSOLE.stdout(f' - Remote branch {Format.magenta(self.short_ref)} already exists')
+            CONSOLE.stdout(f' - Remote branch {Format.Git.ref(self.short_ref)} already exists')
             return
-        CONSOLE.stdout(f' - Create remote branch {Format.magenta(self.short_ref)}')
+        CONSOLE.stdout(f' - Create remote branch {Format.Git.ref(self.short_ref)}')
         raise NotImplementedError
 
     @property

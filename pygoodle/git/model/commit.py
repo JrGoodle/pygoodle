@@ -57,5 +57,5 @@ class Commit(Ref):
         if current_commit == self.sha:
             CONSOLE.stdout(' - On correct commit')
             return
-        CONSOLE.stdout(f' - Checkout commit {Format.magenta(self.short_ref)}')
+        CONSOLE.stdout(f' - Checkout commit {Format.Git.ref(self.short_ref)}')
         super().checkout(check=check)

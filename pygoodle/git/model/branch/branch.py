@@ -63,7 +63,7 @@ class Branch(Ref):
     def checkout(self, check: bool = True) -> None:
         current_branch = offline.current_branch(self.path)
         if current_branch == self.name:
-            CONSOLE.stdout(f' - Branch {Format.magenta(self.short_ref)} already checked out')
+            CONSOLE.stdout(f' - Branch {Format.Git.ref(self.short_ref)} already checked out')
             return
-        CONSOLE.stdout(f' - Checkout branch {Format.magenta(self.short_ref)}')
+        CONSOLE.stdout(f' - Checkout branch {Format.Git.ref(self.short_ref)}')
         super().checkout(check=check)

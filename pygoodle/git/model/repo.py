@@ -179,7 +179,7 @@ class Repo:
     def reset(self, ref: Union[Ref, str] = ORIGIN, hard: bool = False) -> None:
         if isinstance(ref, Ref):
             ref = ref.short_ref
-        CONSOLE.stdout(f' - Reset repo to {Format.magenta(ref)}')
+        CONSOLE.stdout(f' - Reset repo to {Format.Git.ref(ref)}')
         offline.reset(self.path, ref=ref, hard=hard)
 
     @error_msg('Failed to stash current changes')
@@ -218,7 +218,7 @@ class Repo:
         online.update_submodules(self.path, init=init, depth=depth, single_branch=single_branch,
                                  jobs=jobs, recursive=recursive)
 
-    def print_branches(self) -> None:
+    def print_local_branches(self) -> None:
         """Print local git branches"""
 
         # FIXME: Implement
@@ -264,8 +264,8 @@ class Repo:
             status = f'({local_commits_output}/{upstream_commits_output})'
 
         if self.is_detached:
-            return Format.magenta(Format.escape(f'[HEAD @ {self.current_commit()}]'))
-        return Format.magenta(Format.escape(f'[{self.current_branch}]')) + status
+            return Format.Git.ref(Format.escape(f'[HEAD @ {self.current_commit()}]'))
+        return Format.Git.ref(Format.escape(f'[{self.current_branch}]')) + status
 
     def print_remote_branches(self) -> None:
         """Print remote git branches"""

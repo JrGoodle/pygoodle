@@ -11,7 +11,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
-from pygoodle.git.format import GitFormat
+from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg
 from pygoodle.git.model import LocalBranch, RemoteBranch
 
@@ -56,9 +56,9 @@ class TrackingBranch(LocalBranch):
 
     @error_msg('Failed to set tracking branch')
     def set_upstream(self) -> None:
-        CONSOLE.stdout(f' - Set tracking branch {GitFormat.ref(self.short_ref)} -> '
-                       f'{GitFormat.remote(self.upstream_branch.remote.name)} '
-                       f'{GitFormat.ref(self.upstream_branch.short_ref)}')
+        CONSOLE.stdout(f' - Set tracking branch {Format.Git.ref(self.short_ref)} -> '
+                       f'{Format.Git.remote(self.upstream_branch.remote.name)} '
+                       f'{Format.Git.ref(self.upstream_branch.short_ref)}')
         offline.set_upstream_branch(self.path,
                                     branch=self.name,
                                     upstream_branch=self.upstream_branch.name,
@@ -66,7 +66,7 @@ class TrackingBranch(LocalBranch):
 
     @error_msg('Failed to create tracking branch')
     def create_upstream(self) -> None:
-        CONSOLE.stdout(f' - Create tracking branch {GitFormat.ref(self.short_ref)}')
+        CONSOLE.stdout(f' - Create tracking branch {Format.Git.ref(self.short_ref)}')
         online.create_upstream_branch(self.path,
                                       branch=self.name,
                                       upstream_branch=self.upstream_branch.name,

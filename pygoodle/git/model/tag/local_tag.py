@@ -8,7 +8,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 from pygoodle.console import CONSOLE
 from pygoodle.git.decorators import error_msg
-from pygoodle.git.format import GitFormat
+from pygoodle.format import Format
 from pygoodle.git.model import Tag
 
 
@@ -26,14 +26,14 @@ class LocalTag(Tag):
 
     def create(self) -> None:
         if self.exists:
-            CONSOLE.stdout(f' - Local tag {GitFormat.ref(self.name)} already exists')
+            CONSOLE.stdout(f' - Local tag {Format.Git.ref(self.name)} already exists')
             return
         raise NotImplementedError
 
     @error_msg('Failed to delete local tag')
     def delete(self) -> None:
         # TODO: Check if tag exists
-        CONSOLE.stdout(f' - Delete local tag {GitFormat.ref(self.short_ref)}')
+        CONSOLE.stdout(f' - Delete local tag {Format.Git.ref(self.short_ref)}')
         offline.delete_local_tag(self.path, name=self.name)
 
     @property

@@ -11,7 +11,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
-from pygoodle.git.format import GitFormat
+from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg, not_detached
 from pygoodle.git.model import Ref, RemoteBranch
 from pygoodle.git.log import LOG
@@ -51,9 +51,9 @@ class Remote:
     @error_msg('Failed to create remote')
     def create(self, url: str, fetch: bool = False, tags: bool = False) -> None:
         if self.exists:
-            CONSOLE.stdout(f' - Remote {GitFormat.remote(self.name)} already exists')
+            CONSOLE.stdout(f' - Remote {Format.Git.remote(self.name)} already exists')
             return
-        CONSOLE.stdout(f' - Create remote {GitFormat.remote(self.name)}')
+        CONSOLE.stdout(f' - Create remote {Format.Git.remote(self.name)}')
         offline.create_remote(self.path, name=self.name, url=url, fetch=fetch, tags=tags)
 
     @property
@@ -66,9 +66,9 @@ class Remote:
         message = f' - Pull'
         if rebase:
             message += ' with rebase'
-        message += f' from {GitFormat.remote(self.name)}'
+        message += f' from {Format.Git.remote(self.name)}'
         if branch is not None:
-            message += f' {GitFormat.ref(branch)}'
+            message += f' {Format.Git.ref(branch)}'
         CONSOLE.stdout(message)
         online.pull(self.path, remote=self.name, branch=branch, rebase=rebase)
 
@@ -86,7 +86,7 @@ class Remote:
 
     @error_msg('Failed to rename remote')
     def rename(self, name: str) -> None:
-        CONSOLE.stdout(f' - Rename remote {GitFormat.remote(self.name)} to {GitFormat.remote(name)}')
+        CONSOLE.stdout(f' - Rename remote {Format.Git.remote(self.name)} to {Format.Git.remote(name)}')
         offline.rename_remote(self.path, old_name=self.name, new_name=name)
         self.name = name
 

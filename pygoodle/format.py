@@ -167,3 +167,21 @@ class Format:
         if text.endswith(suffix):
             return text[:len(suffix)]
         return text
+
+    class Git:
+
+        @classmethod
+        def ref(cls, output: Any) -> str:
+            return Format.magenta(output)
+
+        @classmethod
+        def remote(cls, output: Any) -> str:
+            return Format.yellow(output)
+
+        @classmethod
+        def upstream(cls, output: Any) -> str:
+            return Format.cyan(output)
+
+        @classmethod
+        def url(cls, output: any) -> str:
+            return Format.cyan(output)

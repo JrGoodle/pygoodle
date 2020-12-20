@@ -35,17 +35,17 @@ class LocalBranch(Branch):
     @error_msg('Failed to create local branch')
     def create(self) -> None:
         if self.exists:
-            CONSOLE.stdout(f' - Local branch {Format.magenta(self.short_ref)} already exists')
+            CONSOLE.stdout(f' - Local branch {Format.Git.ref(self.short_ref)} already exists')
             return
-        CONSOLE.stdout(f' - Create local branch {Format.magenta(self.short_ref)}')
+        CONSOLE.stdout(f' - Create local branch {Format.Git.ref(self.short_ref)}')
         offline.create_local_branch(self.path, branch=self.name)
 
     @error_msg('Failed to delete local branch')
     def delete(self) -> None:
         if factory.has_local_branch(self.path, self.name):
-            CONSOLE.stdout(f" - Local branch {Format.magenta(self.short_ref)} doesn't exist")
+            CONSOLE.stdout(f" - Local branch {Format.Git.ref(self.short_ref)} doesn't exist")
             return
-        CONSOLE.stdout(f' - Delete local branch {Format.magenta(self.short_ref)}')
+        CONSOLE.stdout(f' - Delete local branch {Format.Git.ref(self.short_ref)}')
         offline.delete_local_branch(self.path, self.name)
 
     @property
