@@ -32,12 +32,13 @@ class Submodule(Repo):
         :param Optional[bool] active: Whether submodule is active
         """
 
-        remote = Remote(repo_path / submodule_path, ORIGIN, fetch_url=url)
+        remote = Remote(repo_path / submodule_path, ORIGIN)
         super().__init__(repo_path, default_remote=remote)
         self.repo_path: Path = repo_path
         self.submodule_path: Path = submodule_path
         self.path: Path = self.path / self.submodule_path
         self.submodule_git_dir: Optional[Path] = offline.get_submodule_git_dir(self.path)
+        self.url: str = url
         self.commit: str = commit
         self.branch: Optional[str] = branch
         self.active: Optional[bool] = active

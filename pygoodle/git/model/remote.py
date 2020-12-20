@@ -11,6 +11,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
+from pygoodle.git.format import GitFormat
 from pygoodle.git.decorators import error_msg, not_detached
 from pygoodle.git.model import Ref, RemoteBranch
 from pygoodle.git.log import LOG
@@ -25,32 +26,51 @@ class Remote:
     :ivar str push_url: Push url
     """
 
-    def __init__(self, path: Path, name: str, fetch_url: str, push_url: Optional[str] = None):
+    def __init__(self, path: Path, name: str):
         """GitRemote __init__
 
         :param Path path: Path to git repo
         :param str name: Branch
-        :param str fetch_url: Fetch url
-        :param Optional[str] push_url: Push url
         """
 
         self.name: str = name
         self.path: Path = path
-        self.fetch_url: str = fetch_url
-        self.push_url: str = fetch_url if push_url is None else push_url
+
+    @property
+    def fetch_url(self) -> str:
+        return offline.get_remote_fetch_url(self.path, self.name)
+
+    @property
+    def push_url(self) -> str:
+        return offline.get_remote_push_url(self.path, self.name)
 
     @property
     def branches(self) -> List[RemoteBranch]:
         return factory.get_remote_branches(self)
 
-    def create(self, fetch: bool = False, tags: bool = False) -> None:
-        offline.create_remote(self.path, name=self.name, url=self.fetch_url, fetch=fetch, tags=tags)
+    @error_msg('Failed to create remote')
+    def create(self, url: str, fetch: bool = False, tags: bool = False) -> None:
+        if self.exists:
+            CONSOLE.stdout(f' - Remote {GitFormat.remote(self.name)} already exists')
+            return
+        CONSOLE.stdout(f' - Create remote {GitFormat.remote(self.name)}')
+        offline.create_remote(self.path, name=self.name, url=url, fetch=fetch, tags=tags)
+
+    @property
+    def exists(self) -> bool:
+        raise NotImplementedError
 
     @not_detached
-    @error_msg('Failed to pull latest changes')
-    def pull(self, branch: Optional[str] = None) -> None:
-        CONSOLE.stdout(' - Pull latest changes')
-        online.pull(self.path, remote=self.name, branch=branch)
+    @error_msg('Failed to pull')
+    def pull(self, branch: Optional[str] = None, rebase: bool = False) -> None:
+        message = f' - Pull'
+        if rebase:
+            message += ' with rebase'
+        message += f' from {GitFormat.remote(self.name)}'
+        if branch is not None:
+            message += f' {GitFormat.ref(branch)}'
+        CONSOLE.stdout(message)
+        online.pull(self.path, remote=self.name, branch=branch, rebase=rebase)
 
     @property
     def default_branch(self) -> RemoteBranch:
@@ -64,7 +84,9 @@ class Remote:
         offline.save_default_branch(self.path, self.name, self.fetch_url)
         return RemoteBranch(name=default_branch, remote=self)
 
+    @error_msg('Failed to rename remote')
     def rename(self, name: str) -> None:
+        CONSOLE.stdout(f' - Rename remote {GitFormat.remote(self.name)} to {GitFormat.remote(name)}')
         offline.rename_remote(self.path, old_name=self.name, new_name=name)
         self.name = name
 
@@ -82,3 +104,19 @@ class Remote:
                 LOG.error(message)
                 raise
             CONSOLE.stdout(f' - {message}')
+
+    def _compare_remote_url(self, remote: str, url: str) -> None:
+        """Compare actual remote url to given url
+
+        If URL's are different print error message and exit
+
+        :param str remote: Remote name
+        :param str url: URL to compare with remote's URL
+        :raise ClowderGitError:
+        """
+
+        # if url != self._remote_get_url(remote):
+        #     actual_url = self._remote_get_url(remote)
+        #     message = f"Remote {fmt.remote(remote)} already exists with a different url\n" \
+        #               f"{fmt.url_string(actual_url)} should be {fmt.url_string(url)}"
+        #     raise ClowderGitError(message)

@@ -7,7 +7,10 @@
 from pathlib import Path
 from typing import Optional
 
-from .. import Ref
+import pygoodle.git.offline as offline
+from pygoodle.console import CONSOLE
+from pygoodle.git.model import Ref
+from pygoodle.format import Format
 
 
 class Branch(Ref):
@@ -33,6 +36,13 @@ class Branch(Ref):
             return super().__eq__(other) and self.name == other.name
         return False
 
+    def delete(self) -> None:
+        raise NotImplementedError
+
+    @property
+    def is_tracking_branch(self) -> bool:
+        raise NotImplementedError
+
     @property
     def sha(self) -> Optional[str]:
         """Commit sha"""
@@ -49,3 +59,11 @@ class Branch(Ref):
         """Formatted git ref"""
 
         return self.format_git_branch(self.name)
+
+    def checkout(self, check: bool = True) -> None:
+        current_branch = offline.current_branch(self.path)
+        if current_branch == self.name:
+            CONSOLE.stdout(f' - Branch {Format.magenta(self.short_ref)} already checked out')
+            return
+        CONSOLE.stdout(f' - Checkout branch {Format.magenta(self.short_ref)}')
+        super().checkout(check=check)

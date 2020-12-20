@@ -6,7 +6,10 @@
 
 from pathlib import Path
 
-from .ref import Ref
+import pygoodle.git.offline as offline
+from pygoodle.console import CONSOLE
+from pygoodle.format import Format
+from pygoodle.git.model import Ref
 
 
 class Commit(Ref):
@@ -48,3 +51,11 @@ class Commit(Ref):
         """Formatted git ref"""
 
         return self.sha
+
+    def checkout(self, check: bool = True) -> None:
+        current_commit = offline.current_head_commit_sha(self.path)
+        if current_commit == self.sha:
+            CONSOLE.stdout(' - On correct commit')
+            return
+        CONSOLE.stdout(f' - Checkout commit {Format.magenta(self.short_ref)}')
+        super().checkout(check=check)

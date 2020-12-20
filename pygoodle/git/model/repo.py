@@ -5,15 +5,26 @@
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.format import Format
+from pygoodle.git import GitConfig
 from pygoodle.git.constants import ORIGIN
-from pygoodle.git.model import Branch, Commit, LocalBranch, Ref, Remote, Submodule, TrackingBranch
+from pygoodle.git.model import (
+    AllBranches,
+    Branch,
+    Commit,
+    LocalBranch,
+    Ref,
+    Remote,
+    RemoteBranch,
+    Submodule,
+    TrackingBranch
+)
 from pygoodle.git.decorators import error_msg
 
 
@@ -42,7 +53,7 @@ class Repo:
         online.clone(path, url=url, depth=depth, branch=branch, jobs=jobs)
         if not isinstance(ref, Branch):
             offline.checkout(path, ref.sha)
-        remote = Remote(path, ORIGIN, fetch_url=url)
+        remote = Remote(path, ORIGIN)
         return Repo(path, default_remote=remote)
 
     @property
@@ -70,19 +81,33 @@ class Repo:
         return factory.get_remotes(self.path)
 
     @property
-    def submodules(self) -> Tuple[Submodule, ...]:
-        submodules = factory.get_submodules(self.path)
-        return tuple(sorted(submodules, key=lambda s: s.submodule_path))
+    def submodules(self) -> List[Submodule]:
+        return factory.get_submodules(self.path)
 
     @property
-    def tracking_branches(self) -> Tuple[TrackingBranch, ...]:
-        branches = factory.get_tracking_branches(self.path)
-        return tuple(sorted(branches, key=lambda b: b.name))
+    def tracking_branches(self) -> List[TrackingBranch]:
+        return factory.get_tracking_branches(self.path)
 
     @property
-    def branches(self) -> Tuple[LocalBranch, ...]:
-        branches = factory.get_local_branches(self.path)
-        return tuple(sorted(branches, key=lambda b: b.name))
+    def local_branches(self) -> List[LocalBranch]:
+        return factory.get_local_branches(self.path)
+
+    @property
+    def remote_branches(self) -> List[RemoteBranch]:
+        return factory.get_all_remote_branches(self.path)
+
+    @property
+    def all_branches(self) -> AllBranches:
+        return factory.get_all_branches(self.path)
+
+    def has_local_branch(self, name: str) -> bool:
+        return factory.has_local_branch(self.path, name)
+
+    def has_remote_branch(self, name: str, remote: Optional[Remote] = None) -> bool:
+        return factory.has_remote_branch(self.path, name, remote=remote)
+
+    def has_tracking_branch(self, name: str) -> bool:
+        return factory.has_tracking_branch(self.path, name)
 
     @property
     def exists(self) -> bool:
@@ -168,6 +193,18 @@ class Repo:
     def status(self, verbose: bool = False) -> None:
         offline.status(self.path, verbose=verbose)
 
+    @error_msg('Failed to update local git config')
+    def update_git_config(self, config: GitConfig) -> None:
+        """Update custom git config
+
+        :param GitConfig config: Custom git config
+        """
+
+        CONSOLE.stdout(" - Update local git config")
+        for key, value in config.items():
+            offline.git_config_unset_all_local(self.path, key)
+            offline.git_config_add_local(self.path, key, value)
+
     @error_msg('Failed to update git lfs hooks')
     def install_lfs_hooks(self) -> None:
         CONSOLE.stdout(' - Update git lfs hooks')
@@ -184,13 +221,14 @@ class Repo:
     def print_branches(self) -> None:
         """Print local git branches"""
 
-        current_branch = self.current_branch
-        for branch in self.branches:
-            if branch.name == current_branch:
-                branch_name = Format.green(branch[2:])
-                CONSOLE.stdout(f"* {branch_name}")
-            else:
-                CONSOLE.stdout(branch)
+        # FIXME: Implement
+        # current_branch = self.current_branch
+        # for branch in self.branches:
+        #     if branch.name == current_branch:
+        #         branch_name = Format.green(branch[2:])
+        #         CONSOLE.stdout(f"* {branch_name}")
+        #     else:
+        #         CONSOLE.stdout(branch)
 
     def print_validation(self) -> None:
         """Print validation messages"""

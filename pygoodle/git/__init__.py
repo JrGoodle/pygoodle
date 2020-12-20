@@ -6,7 +6,17 @@
 
 from typing import Dict
 
-from .model import (
+from pygoodle.git.constants import (
+    HEAD,
+    ORIGIN,
+    FETCH_URL,
+    PUSH_URL,
+    GITMODULES,
+    GIT_CONFIG
+)
+
+from pygoodle.git.model import (
+    AllBranches,
     Branch,
     Commit,
     LocalBranch,
@@ -20,15 +30,6 @@ from .model import (
     Submodule,
     Tag,
     TrackingBranch
-)
-
-from .constants import (
-    HEAD,
-    ORIGIN,
-    FETCH_URL,
-    PUSH_URL,
-    GITMODULES,
-    GIT_CONFIG
 )
 
 GitConfig = Dict[str, str]

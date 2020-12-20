@@ -9,8 +9,10 @@ from typing import Optional
 import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
-from .. import Commit, Remote
-from . import Branch
+from pygoodle.console import CONSOLE
+from pygoodle.format import Format
+from pygoodle.git.decorators import error_msg
+from pygoodle.git.model import Branch, Commit, Remote
 
 
 class RemoteBranch(Branch):
@@ -39,11 +41,21 @@ class RemoteBranch(Branch):
         return False
 
     @property
+    def is_tracking_branch(self) -> bool:
+        branches = factory.get_tracking_branches(self.path)
+        return any([branch.upstream_branch == self for branch in branches])
+
+    @property
     def sha(self) -> Optional[str]:
         """Commit sha"""
         return offline.get_branch_commit_sha(self.path, self.name, self.remote.name)
 
+    @error_msg('Failed to delete remote branch')
     def delete(self) -> None:
+        if factory.has_remote_branch(self.path, self.name):
+            CONSOLE.stdout(f" - Remote branch {Format.magenta(self.short_ref)} doesn't exist")
+            return
+        CONSOLE.stdout(f' - Delete remote branch {Format.magenta(self.short_ref)}')
         online.delete_remote_branch(self.path, branch=self.name, remote=self.remote.name)
 
     @property
@@ -51,7 +63,12 @@ class RemoteBranch(Branch):
         branches = factory.get_remote_branches(self.remote)
         return any([branch == self for branch in branches])
 
+    @error_msg('Failed to create remote branch')
     def create(self) -> None:
+        if self.exists:
+            CONSOLE.stdout(f' - Remote branch {Format.magenta(self.short_ref)} already exists')
+            return
+        CONSOLE.stdout(f' - Create remote branch {Format.magenta(self.short_ref)}')
         raise NotImplementedError
 
     @property

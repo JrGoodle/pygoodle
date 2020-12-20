@@ -9,7 +9,21 @@ import pygoodle.command as cmd
 import pygoodle.filesystem as fs
 import pygoodle.git.process_output as process
 from pygoodle.format import Format
-from pygoodle.git.constants import HEAD
+from pygoodle.git.constants import HEAD, FETCH_URL, PUSH_URL
+
+
+def get_remote_fetch_url(path: Path, remote: str) -> Optional[str]:
+    remotes = get_remotes_info(path)
+    if remote not in remotes.keys():
+        return None
+    return remotes[remote][FETCH_URL]
+
+
+def get_remote_push_url(path: Path, remote: str) -> Optional[str]:
+    remotes = get_remotes_info(path)
+    if remote not in remotes.keys():
+        return None
+    return remotes[remote][PUSH_URL]
 
 
 def get_remotes_info(path: Path) -> Dict[str, Dict[str, str]]:

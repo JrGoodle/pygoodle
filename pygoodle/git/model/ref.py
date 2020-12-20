@@ -9,7 +9,6 @@ from typing import Optional
 
 import pygoodle.git.offline as offline
 from pygoodle.console import CONSOLE
-from pygoodle.format import Format
 from pygoodle.git.log import LOG
 
 
@@ -101,11 +100,10 @@ class Ref:
         return tag if tag.startswith(prefix) else f"{prefix}{tag}"
 
     def checkout(self, check: bool = True) -> None:
-        CONSOLE.stdout(f' - Checkout {Format.magenta(self.short_ref)}')
         try:
             offline.checkout(self.path, ref=self.short_ref)
         except Exception:  # noqa
-            message = f'Failed to checkout {Format.magenta(self.short_ref)}'
+            message = f'Failed to checkout'
             if check:
                 LOG.error(message)
                 raise

@@ -6,6 +6,7 @@
 
 from .branch import Branch, LocalBranch, RemoteBranch, TrackingBranch
 from .commit import Commit
+from .factory import AllBranches
 from .protocol import Protocol
 from .ref import Ref
 from .remote import Remote

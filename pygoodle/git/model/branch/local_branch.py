@@ -10,6 +10,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
+from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg, not_detached
 from pygoodle.git.model import Branch, Commit, RemoteBranch
 
@@ -22,15 +23,30 @@ class LocalBranch(Branch):
     """
 
     @property
+    def is_tracking_branch(self) -> bool:
+        branches = factory.get_tracking_branches(self.path)
+        return any([branch.name == self.name for branch in branches])
+
+    @property
     def sha(self) -> Optional[str]:
         """Commit sha"""
         return offline.get_branch_commit_sha(self.path, self.name)
 
+    @error_msg('Failed to create local branch')
     def create(self) -> None:
+        if self.exists:
+            CONSOLE.stdout(f' - Local branch {Format.magenta(self.short_ref)} already exists')
+            return
+        CONSOLE.stdout(f' - Create local branch {Format.magenta(self.short_ref)}')
         offline.create_local_branch(self.path, branch=self.name)
 
+    @error_msg('Failed to delete local branch')
     def delete(self) -> None:
-        offline.delete_local_branch(self.path, branch=self.name)
+        if factory.has_local_branch(self.path, self.name):
+            CONSOLE.stdout(f" - Local branch {Format.magenta(self.short_ref)} doesn't exist")
+            return
+        CONSOLE.stdout(f' - Delete local branch {Format.magenta(self.short_ref)}')
+        offline.delete_local_branch(self.path, self.name)
 
     @property
     def exists(self) -> bool:
