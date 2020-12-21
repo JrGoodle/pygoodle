@@ -42,7 +42,7 @@ class LocalBranch(Branch):
 
     @error_msg('Failed to delete local branch')
     def delete(self) -> None:
-        if factory.has_local_branch(self.path, self.name):
+        if not self.exists:
             CONSOLE.stdout(f" - Local branch {Format.Git.ref(self.short_ref)} doesn't exist")
             return
         CONSOLE.stdout(f' - Delete local branch {Format.Git.ref(self.short_ref)}')
@@ -50,8 +50,7 @@ class LocalBranch(Branch):
 
     @property
     def exists(self) -> bool:
-        branches = factory.get_local_branches(self.path)
-        return any([branch == self for branch in branches])
+        return factory.has_local_branch(self.path, self.name)
 
     @property
     def commit(self) -> Commit:

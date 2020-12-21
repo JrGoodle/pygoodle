@@ -42,8 +42,7 @@ class RemoteBranch(Branch):
 
     @property
     def is_tracking_branch(self) -> bool:
-        branches = factory.get_tracking_branches(self.path)
-        return any([branch.upstream_branch == self for branch in branches])
+        return factory.has_tracking_branch(self.path, self.name)
 
     @property
     def sha(self) -> Optional[str]:
@@ -52,7 +51,7 @@ class RemoteBranch(Branch):
 
     @error_msg('Failed to delete remote branch')
     def delete(self) -> None:
-        if factory.has_remote_branch(self.path, self.name):
+        if not self.exists:
             CONSOLE.stdout(f" - Remote branch {Format.Git.ref(self.short_ref)} doesn't exist")
             return
         CONSOLE.stdout(f' - Delete remote branch {Format.Git.ref(self.short_ref)}')
@@ -60,8 +59,7 @@ class RemoteBranch(Branch):
 
     @property
     def exists(self) -> bool:
-        branches = factory.get_remote_branches(self.remote)
-        return any([branch == self for branch in branches])
+        return factory.has_remote_branch(self.path, self.name)
 
     @error_msg('Failed to create remote branch')
     def create(self) -> None:

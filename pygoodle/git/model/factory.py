@@ -157,14 +157,21 @@ def has_local_branch(path: Path, name: str) -> bool:
     return any([branch.name == name for branch in branches])
 
 
-def has_remote_branch(path: Path, name: str, remote: Optional[Remote] = None) -> bool:
-    if remote is None:
-        branches = get_all_remote_branches(path)
-    else:
-        branches = get_remote_branches(remote)
+def has_remote_branch(name: str, remote: Remote) -> bool:
+    branches = get_remote_branches(remote)
     return any([branch.name == name for branch in branches])
 
 
 def has_tracking_branch(path: Path, name: str) -> bool:
     branches = get_tracking_branches(path)
     return any([branch.name == name for branch in branches])
+
+
+def has_local_tag(path: Path, name: str) -> bool:
+    tags = get_local_tags(path)
+    return any([tag.name == name for tag in tags])
+
+
+def has_remote_tag(name: str, remote: Remote) -> bool:
+    tags = get_remote_tags(remote)
+    return any([tag.name == name for tag in tags])

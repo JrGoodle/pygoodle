@@ -48,11 +48,12 @@ class RemoteTag(Tag):
 
     @error_msg('Failed to delete remote tag')
     def delete(self) -> None:
-        # TODO: Check if tag exists
+        if not self.exists:
+            CONSOLE.stdout(f" - Remote tag {Format.Git.ref(self.short_ref)} doesn't exist")
+            return
         CONSOLE.stdout(f' - Delete remote tag {Format.Git.ref(self.short_ref)}')
         online.delete_remote_tag(self.path, name=self.name, remote=self.remote.name)
 
     @property
     def exists(self) -> bool:
-        tags = factory.get_remote_tags(self.remote)
-        return any([tag == self for tag in tags])
+        return factory.has_remote_tag(self.name, self.remote)

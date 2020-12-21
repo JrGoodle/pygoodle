@@ -103,8 +103,9 @@ class Repo:
     def has_local_branch(self, name: str) -> bool:
         return factory.has_local_branch(self.path, name)
 
-    def has_remote_branch(self, name: str, remote: Optional[Remote] = None) -> bool:
-        return factory.has_remote_branch(self.path, name, remote=remote)
+    @staticmethod
+    def has_remote_branch(name: str, remote: Remote) -> bool:
+        return factory.has_remote_branch(name, remote)
 
     def has_tracking_branch(self, name: str) -> bool:
         return factory.has_tracking_branch(self.path, name)
@@ -210,11 +211,15 @@ class Repo:
         CONSOLE.stdout(' - Update git lfs hooks')
         offline.install_lfs_hooks(self.path)
 
+    @error_msg('Failed to reset timestamp')
     def reset_timestamp(self, timestamp: str, ref: Ref, author: Optional[str] = None) -> None:
+        CONSOLE.stdout(' - Reset timestamp')
         offline.reset_timestamp(self.path, timestamp=timestamp, ref=ref.short_ref, author=author)
 
+    @error_msg('Failed to update submodules')
     def update_submodules(self, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
                           jobs: Optional[int] = None, recursive: bool = False) -> None:
+        CONSOLE.stdout(' - Update submodules')
         online.update_submodules(self.path, init=init, depth=depth, single_branch=single_branch,
                                  jobs=jobs, recursive=recursive)
 

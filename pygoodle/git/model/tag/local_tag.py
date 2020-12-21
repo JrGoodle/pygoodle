@@ -32,11 +32,12 @@ class LocalTag(Tag):
 
     @error_msg('Failed to delete local tag')
     def delete(self) -> None:
-        # TODO: Check if tag exists
+        if not self.exists:
+            CONSOLE.stdout(f" - Local tag {Format.Git.ref(self.short_ref)} doesn't exist")
+            return
         CONSOLE.stdout(f' - Delete local tag {Format.Git.ref(self.short_ref)}')
         offline.delete_local_tag(self.path, name=self.name)
 
     @property
     def exists(self) -> bool:
-        tags = factory.get_local_tags(self.path)
-        return any([tag == self for tag in tags])
+        return factory.has_local_tag(self.path, self.name)
