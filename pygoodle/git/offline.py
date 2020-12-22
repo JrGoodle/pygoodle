@@ -357,8 +357,11 @@ def create_local_branch(path: Path, branch: str) -> CompletedProcess:
     return cmd.run(f"git branch {branch} {HEAD}", cwd=path)
 
 
-def delete_local_branch(path: Path, branch: str) -> CompletedProcess:
-    return cmd.run(f"git branch -d {branch}", cwd=path)
+def delete_local_branch(path: Path, branch: str, force: bool = False) -> CompletedProcess:
+    args = ''
+    if force:
+        args += ' --force '
+    return cmd.run(f"git branch --delete {branch}", cwd=path)
 
 
 def delete_local_tag(path: Path, name: str) -> CompletedProcess:

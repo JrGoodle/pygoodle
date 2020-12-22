@@ -60,12 +60,13 @@ class TrackingBranch(Branch):
         return factory.has_tracking_branch(self.path, self.name)
 
     @error_msg('Failed to set tracking branch')
-    def set_upstream(self) -> None:
+    def set_upstream(self, name: Optional[str] = None) -> None:
+        name = self.name if name is None else name
         CONSOLE.stdout(f' - Set tracking branch {Format.Git.ref(self.short_ref)} -> '
                        f'{Format.Git.remote(self.upstream_branch.remote.name)} '
                        f'{Format.Git.ref(self.upstream_branch.short_ref)}')
         offline.set_upstream_branch(self.path,
-                                    branch=self.name,
+                                    branch=name,
                                     upstream_branch=self.upstream_branch.name,
                                     remote=self.upstream_branch.remote.name)
 
