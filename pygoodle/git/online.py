@@ -30,21 +30,31 @@ def pull_lfs(path: Path) -> CompletedProcess:
     return cmd.run('git lfs pull', cwd=path)
 
 
+# See: https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/
 def clone(path: Path, url: str, depth: Optional[int] = None, branch: Optional[str] = None,
-          jobs: Optional[int] = None, single_branch: bool = False) -> CompletedProcess:
+          jobs: Optional[int] = None, single_branch: bool = False, blobless: bool = False,
+          treeless: bool = False) -> CompletedProcess:
     if path.is_dir():
         if fs.has_contents(path):
             raise Exception(f'Existing directory at clone path {path}')
         fs.remove_dir(path)
+
     args = ''
     if branch is not None:
         args += f' --branch {branch} '
-    elif single_branch:
+    if single_branch:
         args += ' --single-branch '
     if jobs is not None:
         args += f' --jobs {jobs} '
     if depth is not None:
         args += f' --depth {depth} '
+
+    assert not (blobless and treeless)
+    if blobless:
+        args += ' --filter=blob:none '
+    elif treeless:
+        args += ' --filter=tree:0 '
+
     return cmd.run(f'git clone {args} {url} {path}')
 
 
