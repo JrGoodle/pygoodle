@@ -97,9 +97,7 @@ def get_tracking_branches(path: Path) -> List[TrackingBranch]:
         upstream_branch = RemoteBranch(info['upstream_branch'], upstream_remote)
         push_remote = get_remote(path, info['push_remote'])
         push_branch = RemoteBranch(info['push_branch'], push_remote)
-        tracking_branch = TrackingBranch(path, local_branch,
-                                         upstream_branch=upstream_branch,
-                                         push_branch=push_branch)
+        tracking_branch = TrackingBranch(local_branch, upstream_branch=upstream_branch, push_branch=push_branch)
         tracking_branches.append(tracking_branch)
 
     def sort_by(branch: TrackingBranch):

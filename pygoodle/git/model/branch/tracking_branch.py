@@ -4,7 +4,6 @@
 
 """
 
-from pathlib import Path
 from typing import Optional
 
 import pygoodle.git.model.factory as factory
@@ -26,9 +25,8 @@ class TrackingBranch(LocalBranch):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, path: Path, name: str, upstream_branch: RemoteBranch,
-                 push_branch: Optional[RemoteBranch] = None):
-        super().__init__(path, name)
+    def __init__(self, name: str, upstream_branch: RemoteBranch, push_branch: Optional[RemoteBranch] = None):
+        super().__init__(upstream_branch.remote.path, name)
         self.upstream_branch: RemoteBranch = upstream_branch
         self.push_branch: Optional[RemoteBranch] = push_branch
 
