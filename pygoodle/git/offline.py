@@ -392,19 +392,107 @@ def reset_timestamp(path: Path, timestamp: str, ref: str, author: Optional[str] 
     return checkout(path, rev)
 
 
-def clean_submodules(path: Path, recursive: bool = False) -> CompletedProcess:
-    return foreach_submodule(path, 'git clean -ffdx', recursive=recursive)
+def submodule_add(path: Path, repo: str, branch: Optional[str] = None, force: bool = False,
+                  name: Optional[str] = None, reference: Optional[str] = None, depth: Optional[int] = None,
+                  submodule_path: Optional[Path] = None) -> CompletedProcess:
+    args = ''
+    if branch is not None:
+        args += f' -b {branch} '
+    if force:
+        args += ' --force '
+    if name is not None:
+        args += f' --name {name} '
+    if reference is not None:
+        args += f' --reference {reference} '
+    if depth is not None:
+        args += f' --depth {depth} '
+    if submodule_path is not None:
+        submodule_path = str(submodule_path)
+    else:
+        submodule_path = ''
+    return cmd.run(f'git submodule add {args} {repo} {submodule_path}', cwd=path)
 
 
-def reset_submodules(path: Path, recursive: bool = False) -> CompletedProcess:
-    return foreach_submodule(path, 'git reset --hard', recursive=recursive)
+def submodule_absorbgitdirs(path: Path, paths: Optional[List[Path]] = None) -> CompletedProcess:
+    if paths is not None and paths:
+        paths = ' '.join([str(p) for p in paths])
+    else:
+        paths = ''
+    return cmd.run(f'git submodule absorbgitdirs {paths}', cwd=path)
 
 
-def foreach_submodule(path: Path, command: str, recursive: bool = False) -> CompletedProcess:
+def submodule_foreach_clean(path: Path, recursive: bool = False) -> CompletedProcess:
+    return submodule_foreach(path, 'git clean -ffdx', recursive=recursive)
+
+
+def submodule_foreach_reset(path: Path, recursive: bool = False, hard: bool = False) -> CompletedProcess:
+    args = ''
+    if hard:
+        args += ' --hard '
+    return submodule_foreach(path, f'git reset {args}', recursive=recursive)
+
+
+def submodule_foreach(path: Path, command: str, recursive: bool = False) -> CompletedProcess:
     args = ''
     if recursive:
         args += ' --recursive '
     return cmd.run(f'git submodule foreach {args} {command}', cwd=path)
+
+
+def submodule_sync(path: Path, recursive: bool = False, paths: Optional[List[Path]] = None) -> CompletedProcess:
+    args = ''
+    if recursive:
+        args += ' --recursive '
+    if paths is not None and paths:
+        paths = ' '.join([str(p) for p in paths])
+    else:
+        paths = ''
+    return cmd.run(f'git submodule sync {args} {paths}', cwd=path)
+
+
+def submodule_deinit(path: Path, force: bool = False, paths: Optional[List[Path]] = None) -> CompletedProcess:
+    args = ''
+    if force:
+        args += ' --force '
+    if paths is not None and paths:
+        paths = ' '.join([str(p) for p in paths])
+    else:
+        paths = ' --all '
+    return cmd.run(f'git submodule deinit {args} {paths}', cwd=path)
+
+
+def submodule_init(path: Path, paths: Optional[List[Path]] = None) -> CompletedProcess:
+    if paths is not None and paths:
+        paths = ' '.join([str(p) for p in paths])
+    else:
+        paths = ''
+    return cmd.run(f'git submodule init {paths}', cwd=path)
+
+
+def submodule_set_branch(path: Path, submodule_path: Path, branch: str) -> CompletedProcess:
+    return cmd.run(f'git submodule set-url --branch {branch} {submodule_path}', cwd=path)
+
+
+def submodule_unset_branch(path: Path, submodule_path: Path) -> CompletedProcess:
+    return cmd.run(f'git submodule set-url --default {submodule_path}', cwd=path)
+
+
+def submodule_set_url(path: Path, submodule_path: Path, url: str) -> CompletedProcess:
+    return cmd.run(f'git submodule set-url {submodule_path} {url}', cwd=path)
+
+
+def submodule_status(path: Path, cached: bool = False, recursive: bool = False,
+                     paths: Optional[List[Path]] = None) -> CompletedProcess:
+    args = ''
+    if cached:
+        args += ' --cached '
+    if recursive:
+        args += ' -- recursive '
+    if paths is not None and paths:
+        paths = ' '.join([str(p) for p in paths])
+    else:
+        paths = ''
+    return cmd.run(f'git submodule status {args} {paths}', cwd=path)
 
 
 def clean(path: Path, untracked_directories: bool = False, force: bool = False,

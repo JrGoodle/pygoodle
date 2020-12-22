@@ -149,7 +149,13 @@ class Repo:
         if not self.exists:
             return allow_missing
 
-        return self.is_dirty or self.is_rebase_in_progress or self.has_untracked_files
+        if self.is_dirty or self.is_rebase_in_progress or self.has_untracked_files:
+            return False
+
+        submodules = self.submodules
+        if not submodules:
+            return True
+        return all([s.is_valid(allow_missing=allow_missing) for s in submodules])
 
     def remote(self, name: str) -> Optional[Remote]:
         return factory.get_remote(self.path, name)
@@ -174,7 +180,7 @@ class Repo:
         offline.abort_rebase(self.path)
 
     @error_msg('Failed to add files to git index')
-    def add(self, files: List[str]) -> None:
+    def add_files(self, files: List[str]) -> None:
         CONSOLE.stdout(' - Add files to git index')
         offline.add(self.path, files=files)
 
@@ -247,32 +253,47 @@ class Repo:
         offline.reset_timestamp(self.path, timestamp=timestamp, ref=ref.short_ref, author=author)
 
     @error_msg('Failed to update submodules')
-    def update_submodules(self, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
-                          jobs: Optional[int] = None, recursive: bool = False) -> None:
+    def submodule_update(self, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
+                         jobs: Optional[int] = None, recursive: bool = False, remote: bool = False,
+                         checkout: bool = False, rebase: bool = False, merge: bool = False,
+                         paths: Optional[List[Path]] = None) -> None:
         CONSOLE.stdout(' - Update submodules')
-        online.update_submodules(self.path, init=init, depth=depth, single_branch=single_branch,
-                                 jobs=jobs, recursive=recursive)
+        online.submodule_update(self.path, init=init, depth=depth, single_branch=single_branch,
+                                jobs=jobs, recursive=recursive, remote=remote, checkout=checkout,
+                                merge=merge, rebase=rebase, paths=paths)
+
+    @error_msg('Failed to deinit submodules')
+    def submodule_deinit(self, force: bool = False, paths: Optional[List[Path]] = None) -> None:
+        CONSOLE.stdout(' - Deinit submodules')
+        offline.submodule_deinit(self.path, force=force, paths=paths)
+
+    @error_msg('Failed to init submodules')
+    def submodule_init(self, paths: Optional[List[Path]] = None) -> None:
+        CONSOLE.stdout(' - Init submodules')
+        offline.submodule_init(self.path, paths=paths)
+
+    @error_msg('Failed to sync submodules')
+    def submodule_sync(self, recursive: bool = False, paths: Optional[List[Path]] = None) -> None:
+        CONSOLE.stdout(' - Sync submodules')
+        offline.submodule_sync(self.path, recursive=recursive, paths=paths)
 
     def print_local_branches(self) -> None:
         """Print local git branches"""
 
-        # FIXME: Implement
-        # current_branch = self.current_branch
-        # for branch in self.branches:
-        #     if branch.name == current_branch:
-        #         branch_name = Format.green(branch[2:])
-        #         CONSOLE.stdout(f"* {branch_name}")
-        #     else:
-        #         CONSOLE.stdout(branch)
+        for branch in self.local_branches:
+            if branch.name == self.current_branch:
+                branch_name = Format.green(branch[2:])
+                CONSOLE.stdout(f'* {branch_name}')
+            else:
+                CONSOLE.stdout(branch)
 
-    def print_validation(self) -> None:
-        """Print validation messages"""
+    def print_validation(self, allow_missing: bool = False) -> None:
+        """Print validation message"""
 
-        if not self.exists:
+        if not self.exists or self.is_valid(allow_missing=allow_missing):
             return
-
-        if not self.is_valid:
-            CONSOLE.stdout(f'Dirty repo. Please stash, commit, or discard your changes')
+        CONSOLE.stdout(self.status())
+        CONSOLE.stdout(f'Dirty repo. Please stash, commit, or discard your changes')
 
     def groom(self, untracked_directories: bool = False, force: bool = False,
               ignored: bool = False, untracked_files: bool = False) -> None:
@@ -327,7 +348,7 @@ class Repo:
         online.pull(self.path, rebase=rebase)
 
     @not_detached
-    @error_msg('Failed to pull')
+    @error_msg('Failed to push')
     def push(self, force: bool = False) -> None:
         CONSOLE.stdout(' - Push current branch')
         online.push(self.path, force=force)

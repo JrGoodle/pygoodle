@@ -119,9 +119,10 @@ def get_default_branch(url: str) -> str:
     return branch[0]
 
 
-def update_submodules(path: Path, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
-                      jobs: Optional[int] = None, recursive: bool = False,
-                      paths: Optional[List[Path]] = None) -> CompletedProcess:
+def submodule_update(path: Path, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
+                     jobs: Optional[int] = None, recursive: bool = False, remote: bool = False,
+                     no_fetch: bool = False, checkout: bool = False, rebase: bool = False, merge: bool = False,
+                     paths: Optional[List[Path]] = None) -> CompletedProcess:
     args = ''
     if init:
         args += ' --init '
@@ -132,8 +133,21 @@ def update_submodules(path: Path, init: bool = False, depth: Optional[int] = Non
     if depth is not None:
         args += f' --depth {depth} '
     if recursive is not None:
-        args += f' --recursive '
-    if paths is not None:
+        args += ' --recursive '
+    if remote:
+        args += ' --remote '
+    if no_fetch:
+        args += ' --no-fetch '
+
+    # TODO: Validate that at most one of these is True
+    if checkout:
+        args += ' --checkout '
+    if merge:
+        args += ' --merge '
+    if rebase:
+        args += ' --rebase '
+
+    if paths is not None and paths:
         paths = ' '.join([str(p) for p in paths])
     else:
         paths = ''
