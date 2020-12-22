@@ -4,6 +4,7 @@
 
 """
 
+from pathlib import Path
 from typing import Optional
 
 import pygoodle.git.model.factory as factory
@@ -23,7 +24,7 @@ class RemoteBranch(Branch):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, name: str, remote: Remote, is_default: bool = False):
+    def __init__(self, path: Path, name: str, remote: str, is_default: bool = False):
         """Branch __init__
 
         :param str name: Branch name
@@ -31,8 +32,8 @@ class RemoteBranch(Branch):
         :param bool is_default: Is branch default for remote repo
         """
 
-        super().__init__(remote.path, name)
-        self.remote: Remote = remote
+        super().__init__(path, name)
+        self.remote: Remote = Remote(self.path, remote)
         self.is_default: bool = is_default
 
     def __eq__(self, other) -> bool:
@@ -59,7 +60,7 @@ class RemoteBranch(Branch):
 
     @property
     def exists(self) -> bool:
-        return factory.has_remote_branch(self.name, remote=self.remote)
+        return factory.has_remote_branch(self.path, self.name, self.remote.name)
 
     @error_msg('Failed to create remote branch')
     def create(self) -> None:

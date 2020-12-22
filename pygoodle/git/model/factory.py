@@ -93,11 +93,11 @@ def get_tracking_branches(path: Path) -> List[TrackingBranch]:
     branches = offline.get_tracking_branches_info(path)
     tracking_branches = []
     for local_branch, info in branches.items():
-        upstream_remote = get_remote(path, info['upstream_remote'])
-        upstream_branch = RemoteBranch(info['upstream_branch'], upstream_remote)
-        push_remote = get_remote(path, info['push_remote'])
-        push_branch = RemoteBranch(info['push_branch'], push_remote)
-        tracking_branch = TrackingBranch(local_branch, upstream_branch=upstream_branch, push_branch=push_branch)
+        tracking_branch = TrackingBranch(path, local_branch,
+                                         upstream_branch=info['upstream_branch'],
+                                         upstream_remote=info['upstream_remote'],
+                                         push_branch=info['push_branch'],
+                                         push_remote=info['push_remote'])
         tracking_branches.append(tracking_branch)
 
     def sort_by(branch: TrackingBranch):
@@ -128,11 +128,11 @@ def get_all_remote_branches(path: Path) -> List[RemoteBranch]:
     return sorted(branches, key=lambda branch: sort_by(branch))
 
 
-def get_remote_branches(remote: Remote) -> List[RemoteBranch]:
-    branches, default_branch = offline.get_remote_branches_info(remote.path, remote.name)
-    branches = [RemoteBranch(branch, remote) for branch in branches]
+def get_remote_branches(path: Path, remote: str) -> List[RemoteBranch]:
+    branches, default_branch = offline.get_remote_branches_info(path, remote)
+    branches = [RemoteBranch(path, branch, remote) for branch in branches]
     if default_branch is not None:
-        branches.append(RemoteBranch(default_branch, remote, is_default=True))
+        branches.append(RemoteBranch(path, default_branch, remote, is_default=True))
 
     def sort_by(branch: RemoteBranch):
         return f'{branch.remote.name}/{branch.name}'
@@ -140,9 +140,9 @@ def get_remote_branches(remote: Remote) -> List[RemoteBranch]:
     return sorted(branches, key=lambda branch: sort_by(branch))
 
 
-def get_remote_tags(remote: Remote) -> List[RemoteTag]:
-    tags = online.get_remote_tags_info(remote.path, remote.name)
-    tags = [RemoteTag(tag, remote) for tag in tags]
+def get_remote_tags(path: Path, remote: str) -> List[RemoteTag]:
+    tags = online.get_remote_tags_info(path, remote)
+    tags = [RemoteTag(path, tag, remote) for tag in tags]
 
     def sort_by(tag: RemoteTag):
         return f'{tag.remote.name}/{tag.name}'
@@ -155,8 +155,8 @@ def has_local_branch(path: Path, name: str) -> bool:
     return any([branch.name == name for branch in branches])
 
 
-def has_remote_branch(name: str, remote: Remote) -> bool:
-    branches = get_remote_branches(remote)
+def has_remote_branch(path: Path, name: str, remote: str) -> bool:
+    branches = get_remote_branches(path, remote)
     return any([branch.name == name for branch in branches])
 
 
@@ -170,6 +170,6 @@ def has_local_tag(path: Path, name: str) -> bool:
     return any([tag.name == name for tag in tags])
 
 
-def has_remote_tag(name: str, remote: Remote) -> bool:
-    tags = get_remote_tags(remote)
+def has_remote_tag(path: Path, name: str, remote: str) -> bool:
+    tags = get_remote_tags(path, remote)
     return any([tag.name == name for tag in tags])

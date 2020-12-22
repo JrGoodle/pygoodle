@@ -4,6 +4,7 @@
 
 """
 
+from pathlib import Path
 from typing import Optional
 
 import pygoodle.git.model.factory as factory
@@ -25,12 +26,12 @@ class TrackingBranch(Branch):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, local_branch: LocalBranch, upstream_branch: RemoteBranch,
-                 push_branch: Optional[RemoteBranch] = None):
-        super().__init__(local_branch.path, local_branch.name)
-        self.local_branch: LocalBranch = local_branch
-        self.upstream_branch: RemoteBranch = upstream_branch
-        self.push_branch: Optional[RemoteBranch] = push_branch
+    def __init__(self, path: Path, local_branch: str, upstream_branch: str, upstream_remote: str,
+                 push_branch: str, push_remote: str):
+        super().__init__(path, local_branch)
+        self.local_branch: LocalBranch = LocalBranch(self.path, self.name)
+        self.upstream_branch: RemoteBranch = RemoteBranch(self.path, upstream_branch, upstream_remote)
+        self.push_branch: RemoteBranch = RemoteBranch(self.path, push_branch, push_remote)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, TrackingBranch):
@@ -70,6 +71,9 @@ class TrackingBranch(Branch):
 
     @error_msg('Failed to create tracking branch')
     def create_upstream(self) -> None:
+        if self.upstream_branch.exists:
+            CONSOLE.stdout(' - Tracking branch already exists')
+            return
         CONSOLE.stdout(f' - Create tracking branch {Format.Git.ref(self.short_ref)}')
         online.create_upstream_branch(self.path,
                                       branch=self.name,

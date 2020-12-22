@@ -46,7 +46,7 @@ class Remote:
 
     @property
     def branches(self) -> List[RemoteBranch]:
-        return factory.get_remote_branches(self)
+        return factory.get_remote_branches(self.path, self.name)
 
     @error_msg('Failed to create remote')
     def create(self, url: str, fetch: bool = False, tags: bool = False) -> None:
@@ -77,12 +77,12 @@ class Remote:
         if offline.is_repo_cloned(self.path):
             default_branch = offline.get_default_branch(self.path, self.name)
             if default_branch is not None:
-                return RemoteBranch(name=default_branch, remote=self)
+                return RemoteBranch(self.path, default_branch, self.name)
 
         default_branch = online.get_default_branch(self.fetch_url)
         # FIXME: Need to use git_dir here instead of path
         offline.save_default_branch(self.path, self.name, self.fetch_url)
-        return RemoteBranch(name=default_branch, remote=self)
+        return RemoteBranch(self.path, default_branch, self.name)
 
     @error_msg('Failed to rename remote')
     def rename(self, name: str) -> None:

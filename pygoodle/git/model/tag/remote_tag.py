@@ -4,6 +4,8 @@
 
 """
 
+from pathlib import Path
+
 import pygoodle.git.model.factory as factory
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
@@ -20,15 +22,15 @@ class RemoteTag(Tag):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, name: str, remote: Remote):
+    def __init__(self, path: Path, name: str, remote: str):
         """GitRepo __init__
 
         :param str name: Tag name
         :param Remote remote: Remote
         """
 
-        super().__init__(remote.path, name)
-        self.remote: Remote = remote
+        super().__init__(path, name)
+        self.remote: Remote = Remote(self.path, remote)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, RemoteTag):
@@ -56,4 +58,4 @@ class RemoteTag(Tag):
 
     @property
     def exists(self) -> bool:
-        return factory.has_remote_tag(self.name, self.remote)
+        return factory.has_remote_tag(self.path, self.name, self.remote.name)

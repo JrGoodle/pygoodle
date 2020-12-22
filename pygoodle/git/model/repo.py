@@ -103,9 +103,8 @@ class Repo:
     def has_local_branch(self, name: str) -> bool:
         return factory.has_local_branch(self.path, name)
 
-    @staticmethod
-    def has_remote_branch(name: str, remote: Remote) -> bool:
-        return factory.has_remote_branch(name, remote)
+    def has_remote_branch(self, name: str, remote: str) -> bool:
+        return factory.has_remote_branch(self.path, name, remote)
 
     def has_tracking_branch(self, name: str) -> bool:
         return factory.has_tracking_branch(self.path, name)
