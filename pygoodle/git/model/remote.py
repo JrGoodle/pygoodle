@@ -12,7 +12,7 @@ import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.format import Format
-from pygoodle.git.decorators import error_msg, not_detached
+from pygoodle.git.decorators import error_msg
 from pygoodle.git.model import Ref, RemoteBranch
 from pygoodle.git.log import LOG
 
@@ -60,18 +60,6 @@ class Remote:
     def exists(self) -> bool:
         raise NotImplementedError
 
-    @not_detached
-    @error_msg('Failed to pull')
-    def pull(self, branch: Optional[str] = None, rebase: bool = False) -> None:
-        message = f' - Pull'
-        if rebase:
-            message += ' with rebase'
-        message += f' from {Format.Git.remote(self.name)}'
-        if branch is not None:
-            message += f' {Format.Git.ref(branch)}'
-        CONSOLE.stdout(message)
-        online.pull(self.path, remote=self.name, branch=branch, rebase=rebase)
-
     @property
     def default_branch(self) -> RemoteBranch:
         if offline.is_repo_cloned(self.path):
@@ -104,6 +92,9 @@ class Remote:
                 LOG.error(message)
                 raise
             CONSOLE.stdout(f' - {message}')
+
+    def print_branches(self) -> None:
+        raise NotImplementedError
 
     def _compare_remote_url(self, remote: str, url: str) -> None:
         """Compare actual remote url to given url

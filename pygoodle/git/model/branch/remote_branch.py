@@ -11,6 +11,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
+from pygoodle.git.decorators import not_detached
 from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg
 from pygoodle.git.model import Branch, Commit, Remote
@@ -81,5 +82,12 @@ class RemoteBranch(Branch):
 
         return self.format_git_branch(self.name)
 
-    def pull(self) -> None:
-        raise NotImplementedError
+    @not_detached
+    @error_msg('Failed to pull')
+    def pull(self, rebase: bool = False) -> None:
+        message = f' - Pull'
+        if rebase:
+            message += ' with rebase'
+        message += f' from {Format.Git.remote(self.remote.name)} {Format.Git.ref(self.name)}'
+        CONSOLE.stdout(message)
+        online.pull(self.path, remote=self.remote.name, branch=self.name, rebase=rebase)

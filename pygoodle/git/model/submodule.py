@@ -10,7 +10,7 @@ from typing import Optional
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.git.constants import ORIGIN
-from . import Remote, Repo
+from . import Repo
 
 
 class Submodule(Repo):
@@ -32,8 +32,7 @@ class Submodule(Repo):
         :param Optional[bool] active: Whether submodule is active
         """
 
-        remote = Remote(repo_path / submodule_path, ORIGIN)
-        super().__init__(repo_path, default_remote=remote)
+        super().__init__(repo_path, default_remote=ORIGIN)
         self.repo_path: Path = repo_path
         self.submodule_path: Path = submodule_path
         self.path: Path = self.path / self.submodule_path

@@ -11,6 +11,7 @@ import pygoodle.git.model.factory as factory
 import pygoodle.git.offline as offline
 import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
+from pygoodle.git.decorators import not_detached
 from pygoodle.format import Format
 from pygoodle.git import GitConfig
 from pygoodle.git.constants import ORIGIN
@@ -35,7 +36,7 @@ class Repo:
     :ivar str default_remote: Default remote name
     """
 
-    def __init__(self, path: Path, default_remote: Optional[Remote] = None):
+    def __init__(self, path: Path, default_remote: Optional[str] = None):
         """LocalRepo __init__
 
         :param Path path: Absolute path to repo
@@ -44,7 +45,7 @@ class Repo:
 
         self.path: Path = path
         self.git_dir: Path = self.path / '.git'
-        self.default_remote: Optional[Remote] = default_remote
+        self.default_remote: Optional[Remote] = Remote(self.path, default_remote)
 
     @staticmethod
     def clone(path: Path, url: str, depth: Optional[int] = None, ref: Optional[Ref] = None,
@@ -53,8 +54,7 @@ class Repo:
         online.clone(path, url=url, depth=depth, branch=branch, jobs=jobs)
         if not isinstance(ref, Branch):
             offline.checkout(path, ref.sha)
-        remote = Remote(path, ORIGIN)
-        return Repo(path, default_remote=remote)
+        return Repo(path, default_remote=ORIGIN)
 
     @property
     def has_untracked_files(self) -> bool:
@@ -113,6 +113,32 @@ class Repo:
     def exists(self) -> bool:
         return offline.is_repo_cloned(self.path)
 
+    def formatted_name(self, padding: Optional[int] = None) -> str:
+        """Formatted project name"""
+
+        if not self.exists:
+            return str(self.path)
+
+        if self.is_dirty:
+            output = f'{self.path}*'
+        else:
+            output = str(self.path)
+
+        if padding is not None:
+            output = output.ljust(padding)
+
+        if '*' in output:
+            return Format.red(output)
+
+        return Format.green(output)
+
+    def checkout(self, ref: str) -> None:
+        if self.is_dirty:
+            CONSOLE.stdout(' - Dirty repo. Please stash, commit, or discard your changes')
+            self.status(verbose=True)
+            return
+        offline.checkout(self.path, ref=ref)
+
     def is_valid(self, allow_missing: bool = True) -> bool:
         """Validate repo state
 
@@ -166,6 +192,11 @@ class Repo:
         :param bool ignored: ``X`` Remove only files ignored by git
         :param bool untracked_files: ``x`` Remove all untracked files
         """
+
+        if not self.is_dirty:
+            CONSOLE.stdout(' - No changes to discard')
+            return
+
         CONSOLE.stdout(' - Clean repo')
         offline.clean(self.path, untracked_directories=untracked_directories,
                       force=force, ignored=ignored, untracked_files=untracked_files)
@@ -285,3 +316,18 @@ class Repo:
         #         CONSOLE.stdout(f"  {Format.red(local_branch)} -> {remote_branch}")
         #     else:
         #         CONSOLE.stdout(Format.red(branch))
+
+    @not_detached
+    @error_msg('Failed to pull')
+    def pull(self, rebase: bool = False) -> None:
+        message = f' - Pull'
+        if rebase:
+            message += ' with rebase'
+        CONSOLE.stdout(message)
+        online.pull(self.path, rebase=rebase)
+
+    @not_detached
+    @error_msg('Failed to pull')
+    def push(self, force: bool = False) -> None:
+        CONSOLE.stdout(' - Push current branch')
+        online.push(self.path, force=force)
