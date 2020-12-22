@@ -36,6 +36,10 @@ class Commit(Ref):
         return False
 
     @property
+    def is_commit(self) -> bool:
+        return True
+
+    @property
     def sha(self) -> str:
         """Commit sha"""
         return self._sha

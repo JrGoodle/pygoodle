@@ -35,6 +35,10 @@ class Tag(Ref):
         return False
 
     @property
+    def is_tag(self) -> bool:
+        return True
+
+    @property
     def sha(self) -> str:
         """Commit sha"""
         raise NotImplementedError

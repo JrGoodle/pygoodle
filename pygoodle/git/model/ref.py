@@ -34,6 +34,18 @@ class Ref:
         return False
 
     @property
+    def is_branch(self) -> bool:
+        return False
+
+    @property
+    def is_tag(self) -> bool:
+        return False
+
+    @property
+    def is_commit(self) -> bool:
+        return False
+
+    @property
     def sha(self) -> Optional[str]:
         """Commit sha"""
         raise NotImplementedError

@@ -12,10 +12,10 @@ import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg
-from pygoodle.git.model import LocalBranch, RemoteBranch
+from pygoodle.git.model import Branch, LocalBranch, RemoteBranch
 
 
-class TrackingBranch(LocalBranch):
+class TrackingBranch(Branch):
     """Class encapsulating git branch
 
     :ivar Path path: Path to git repo
@@ -25,8 +25,10 @@ class TrackingBranch(LocalBranch):
     :ivar str formatted_ref: Formatted ref
     """
 
-    def __init__(self, name: str, upstream_branch: RemoteBranch, push_branch: Optional[RemoteBranch] = None):
-        super().__init__(upstream_branch.remote.path, name)
+    def __init__(self, local_branch: LocalBranch, upstream_branch: RemoteBranch,
+                 push_branch: Optional[RemoteBranch] = None):
+        super().__init__(local_branch.path, local_branch.name)
+        self.local_branch: LocalBranch = local_branch
         self.upstream_branch: RemoteBranch = upstream_branch
         self.push_branch: Optional[RemoteBranch] = push_branch
 
@@ -35,8 +37,18 @@ class TrackingBranch(LocalBranch):
             return super().__eq__(other) and self.upstream_branch == other.upstream_branch
         return False
 
-    def delete_upstream(self) -> None:
+    @property
+    def sha(self) -> Optional[str]:
+        """Commit sha"""
+        raise self.local_branch.sha
+
+    def delete(self) -> None:
+        self.local_branch.delete()
         self.upstream_branch.delete()
+
+    @property
+    def is_branch(self) -> bool:
+        return True
 
     @property
     def is_tracking_branch(self) -> bool:
@@ -44,13 +56,7 @@ class TrackingBranch(LocalBranch):
 
     @property
     def exists(self) -> bool:
-        branches = factory.get_tracking_branches(self.path)
-        return any([branch == self for branch in branches])
-
-    @property
-    def upstream_sha(self) -> Optional[str]:
-        """Commit sha"""
-        return offline.get_branch_commit_sha(self.path, self.upstream_branch.name, self.upstream_branch.remote.name)
+        return factory.has_tracking_branch(self.path, self.name)
 
     @error_msg('Failed to set tracking branch')
     def set_upstream(self) -> None:
@@ -79,6 +85,7 @@ class TrackingBranch(LocalBranch):
         :raise ClowderGitError:
         """
 
+        # FIXME: Try to set this in any scenario where it makes sense
         # origin = self._remote(remote)
         # self.fetch(remote, depth=depth, ref=GitRef(branch=branch))
         #

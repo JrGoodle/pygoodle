@@ -36,11 +36,20 @@ class Branch(Ref):
             return super().__eq__(other) and self.name == other.name
         return False
 
-    def delete(self) -> None:
-        raise NotImplementedError
+    @property
+    def is_checked_out(self) -> bool:
+        current_branch = offline.current_branch(self.path)
+        return current_branch == self.name
+
+    @property
+    def is_branch(self) -> bool:
+        return True
 
     @property
     def is_tracking_branch(self) -> bool:
+        return False
+
+    def delete(self) -> None:
         raise NotImplementedError
 
     @property

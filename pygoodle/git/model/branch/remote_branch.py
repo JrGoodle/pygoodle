@@ -59,7 +59,7 @@ class RemoteBranch(Branch):
 
     @property
     def exists(self) -> bool:
-        return factory.has_remote_branch(self.path, self.name)
+        return factory.has_remote_branch(self.name, remote=self.remote)
 
     @error_msg('Failed to create remote branch')
     def create(self) -> None:
@@ -79,3 +79,6 @@ class RemoteBranch(Branch):
         """Formatted git ref"""
 
         return self.format_git_branch(self.name)
+
+    def pull(self) -> None:
+        raise NotImplementedError
