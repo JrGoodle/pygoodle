@@ -4,7 +4,8 @@ from functools import wraps
 from typing import Callable, Union
 
 from pygoodle.console import CONSOLE
-from pygoodle.git.log import LOG
+
+from .log import LOG
 
 
 def output_msg(message: Union[Callable, str]):

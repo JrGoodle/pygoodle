@@ -14,10 +14,12 @@ from .console import CONSOLE
 from .format import Format
 
 
-def get_stdout(command: str, cwd: Path = Path.cwd()) -> str:
+def get_stdout(command: str, cwd: Path = Path.cwd()) -> Optional[str]:
+    if not cwd.is_dir():
+        return None
     result = run(command, cwd=cwd, print_output=False, check=False)
     if result.returncode != 0:
-        return ''
+        return None
     output: str = result.stdout
     return output.strip()
 

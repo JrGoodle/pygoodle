@@ -6,13 +6,15 @@
 
 from typing import Optional
 
-import pygoodle.git.model.factory as factory
-import pygoodle.git.offline as offline
-import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.format import Format
+from pygoodle.git.constants import ORIGIN
 from pygoodle.git.decorators import error_msg, not_detached
-from pygoodle.git.model import Branch, Commit, RemoteBranch
+from pygoodle.git.model.commit import Commit
+from pygoodle.git.offline import GitOffline
+from pygoodle.git.online import GitOnline
+
+from .branch import Branch
 
 
 class LocalBranch(Branch):
@@ -24,13 +26,14 @@ class LocalBranch(Branch):
 
     @property
     def is_tracking_branch(self) -> bool:
-        branches = factory.get_tracking_branches(self.path)
+        from pygoodle.git.model.factory import GitFactory
+        branches = GitFactory.get_tracking_branches(self.path)
         return any([branch.name == self.name for branch in branches])
 
     @property
     def sha(self) -> Optional[str]:
         """Commit sha"""
-        return offline.get_branch_commit_sha(self.path, self.name)
+        return GitOffline.get_branch_commit_sha(self.path, self.name)
 
     @error_msg('Failed to create local branch')
     def create(self) -> None:
@@ -38,7 +41,7 @@ class LocalBranch(Branch):
             CONSOLE.stdout(f' - Local branch {Format.Git.ref(self.short_ref)} already exists')
             return
         CONSOLE.stdout(f' - Create local branch {Format.Git.ref(self.short_ref)}')
-        offline.create_local_branch(self.path, branch=self.name)
+        GitOffline.create_local_branch(self.path, branch=self.name)
 
     @error_msg('Failed to delete local branch')
     def delete(self, force: bool = False) -> None:
@@ -46,28 +49,24 @@ class LocalBranch(Branch):
             CONSOLE.stdout(f" - Local branch {Format.Git.ref(self.short_ref)} doesn't exist")
             return
         CONSOLE.stdout(f' - Delete local branch {Format.Git.ref(self.short_ref)}')
-        offline.delete_local_branch(self.path, self.name, force=force)
+        GitOffline.delete_local_branch(self.path, self.name, force=force)
 
     @property
     def exists(self) -> bool:
-        return factory.has_local_branch(self.path, self.name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_local_branch(self.path, self.name)
 
     @property
     def commit(self) -> Commit:
-        sha = offline.get_branch_commit_sha(self.path, branch=self.name)
+        sha = GitOffline.get_branch_commit_sha(self.path, branch=self.name)
         return Commit(self.path, sha)
 
     @not_detached
     @error_msg('Failed to push local changes')
-    def push(self, branch: Optional[RemoteBranch] = None, force: bool = False) -> None:
+    def push(self, branch: str = 'master', remote: str = ORIGIN, force: bool = False) -> None:
         CONSOLE.stdout(' - Push local changes')
-        remote_branch = None
-        remote = None
-        if branch is not None:
-            remote_branch = branch.name
-            remote = branch.remote.name
-        online.push(self.path,
-                    local_branch=self.name,
-                    remote_branch=remote_branch,
-                    remote=remote,
-                    force=force)
+        GitOnline.push(self.path,
+                       local_branch=self.name,
+                       remote_branch=branch,
+                       remote=remote,
+                       force=force)

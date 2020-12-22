@@ -7,14 +7,14 @@
 from pathlib import Path
 from typing import Optional
 
-import pygoodle.git.model.factory as factory
-import pygoodle.git.offline as offline
-import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.git.decorators import not_detached
+from pygoodle.git.offline import GitOffline
+from pygoodle.git.online import GitOnline
 from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg
-from pygoodle.git.model import Branch, LocalBranch, RemoteBranch
+
+from .branch import Branch
 
 
 class TrackingBranch(Branch):
@@ -29,6 +29,9 @@ class TrackingBranch(Branch):
 
     def __init__(self, path: Path, local_branch: str, upstream_branch: str, upstream_remote: str,
                  push_branch: Optional[str] = None, push_remote: Optional[str] = None):
+        from .local_branch import LocalBranch
+        from .remote_branch import RemoteBranch
+
         super().__init__(path, local_branch)
         self.local_branch: LocalBranch = LocalBranch(self.path, self.name)
         self.upstream_branch: RemoteBranch = RemoteBranch(self.path, upstream_branch, upstream_remote)
@@ -60,7 +63,8 @@ class TrackingBranch(Branch):
 
     @property
     def exists(self) -> bool:
-        return factory.has_tracking_branch(self.path, self.name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_tracking_branch(self.path, self.name)
 
     @error_msg('Failed to set tracking branch')
     def set_upstream(self, name: Optional[str] = None) -> None:
@@ -68,10 +72,10 @@ class TrackingBranch(Branch):
         CONSOLE.stdout(f' - Set tracking branch {Format.Git.ref(self.short_ref)} -> '
                        f'{Format.Git.remote(self.upstream_branch.remote.name)} '
                        f'{Format.Git.ref(self.upstream_branch.short_ref)}')
-        offline.set_upstream_branch(self.path,
-                                    branch=name,
-                                    upstream_branch=self.upstream_branch.name,
-                                    remote=self.upstream_branch.remote.name)
+        GitOffline.set_upstream_branch(self.path,
+                                       branch=name,
+                                       upstream_branch=self.upstream_branch.name,
+                                       remote=self.upstream_branch.remote.name)
 
     @error_msg('Failed to create tracking branch')
     def create_upstream(self) -> None:
@@ -79,10 +83,10 @@ class TrackingBranch(Branch):
             CONSOLE.stdout(' - Tracking branch already exists')
             return
         CONSOLE.stdout(f' - Create tracking branch {Format.Git.ref(self.short_ref)}')
-        online.create_upstream_branch(self.path,
-                                      branch=self.name,
-                                      upstream_branch=self.upstream_branch.name,
-                                      remote=self.upstream_branch.remote.name)
+        GitOnline.create_upstream_branch(self.path,
+                                         branch=self.name,
+                                         upstream_branch=self.upstream_branch.name,
+                                         remote=self.upstream_branch.remote.name)
 
     @not_detached
     @error_msg('Failed to pull')
@@ -93,7 +97,8 @@ class TrackingBranch(Branch):
         message += f' from {Format.Git.remote(self.upstream_branch.remote.name)} ' \
                    f'{Format.Git.ref(self.upstream_branch.name)}'
         CONSOLE.stdout(message)
-        online.pull(self.path, remote=self.upstream_branch.remote.name, branch=self.upstream_branch.name, rebase=rebase)
+        GitOnline.pull(self.path, remote=self.upstream_branch.remote.name, branch=self.upstream_branch.name,
+                       rebase=rebase)
 
     def _set_tracking_branch_commit(self, branch: str, remote: str, depth: int) -> None:
         """Set tracking relationship between local and remote branch if on same commit

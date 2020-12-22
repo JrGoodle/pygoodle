@@ -4,12 +4,12 @@
 
 """
 
-import pygoodle.git.model.factory as factory
-import pygoodle.git.offline as offline
 from pygoodle.console import CONSOLE
-from pygoodle.git.decorators import error_msg
 from pygoodle.format import Format
-from pygoodle.git.model import Tag
+from pygoodle.git.decorators import error_msg
+from pygoodle.git.offline import GitOffline
+
+from .tag import Tag
 
 
 class LocalTag(Tag):
@@ -22,7 +22,7 @@ class LocalTag(Tag):
     @property
     def sha(self) -> str:
         """Commit sha"""
-        return offline.get_tag_commit_sha(self.path, self.name)
+        return GitOffline.get_tag_commit_sha(self.path, self.name)
 
     def create(self) -> None:
         if self.exists:
@@ -36,8 +36,9 @@ class LocalTag(Tag):
             CONSOLE.stdout(f" - Local tag {Format.Git.ref(self.short_ref)} doesn't exist")
             return
         CONSOLE.stdout(f' - Delete local tag {Format.Git.ref(self.short_ref)}')
-        offline.delete_local_tag(self.path, name=self.name)
+        GitOffline.delete_local_tag(self.path, name=self.name)
 
     @property
     def exists(self) -> bool:
-        return factory.has_local_tag(self.path, self.name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_local_tag(self.path, self.name)

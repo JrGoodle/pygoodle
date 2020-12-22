@@ -7,14 +7,15 @@
 from pathlib import Path
 from typing import List, Optional
 
-import pygoodle.git.model.factory as factory
-import pygoodle.git.offline as offline
-import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.format import Format
 from pygoodle.git.decorators import error_msg
-from pygoodle.git.model import Ref, RemoteBranch
 from pygoodle.git.log import LOG
+from pygoodle.git.offline import GitOffline
+from pygoodle.git.online import GitOnline
+
+from .branch.remote_branch import RemoteBranch
+from .ref import Ref
 
 
 class Remote:
@@ -38,15 +39,16 @@ class Remote:
 
     @property
     def fetch_url(self) -> str:
-        return offline.get_remote_fetch_url(self.path, self.name)
+        return GitOffline.get_remote_fetch_url(self.path, self.name)
 
     @property
     def push_url(self) -> str:
-        return offline.get_remote_push_url(self.path, self.name)
+        return GitOffline.get_remote_push_url(self.path, self.name)
 
     @property
     def branches(self) -> List[RemoteBranch]:
-        return factory.get_remote_branches(self.path, self.name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_remote_branches(self.path, self.name)
 
     @error_msg('Failed to create remote')
     def create(self, url: str, fetch: bool = False, tags: bool = False) -> None:
@@ -54,7 +56,7 @@ class Remote:
             CONSOLE.stdout(f' - Remote {Format.Git.remote(self.name)} already exists')
             return
         CONSOLE.stdout(f' - Create remote {Format.Git.remote(self.name)}')
-        offline.create_remote(self.path, name=self.name, url=url, fetch=fetch, tags=tags)
+        GitOffline.create_remote(self.path, name=self.name, url=url, fetch=fetch, tags=tags)
 
     @property
     def exists(self) -> bool:
@@ -62,20 +64,20 @@ class Remote:
 
     @property
     def default_branch(self) -> RemoteBranch:
-        if offline.is_repo_cloned(self.path):
-            default_branch = offline.get_default_branch(self.path, self.name)
+        if GitOffline.is_repo_cloned(self.path):
+            default_branch = GitOffline.get_default_branch(self.path, self.name)
             if default_branch is not None:
                 return RemoteBranch(self.path, default_branch, self.name)
 
-        default_branch = online.get_default_branch(self.fetch_url)
+        default_branch = GitOnline.get_default_branch(self.fetch_url)
         # FIXME: Need to use git_dir here instead of path
-        offline.save_default_branch(self.path, self.name, self.fetch_url)
+        GitOffline.save_default_branch(self.path, self.name, self.fetch_url)
         return RemoteBranch(self.path, default_branch, self.name)
 
     @error_msg('Failed to rename remote')
     def rename(self, name: str) -> None:
         CONSOLE.stdout(f' - Rename remote {Format.Git.remote(self.name)} to {Format.Git.remote(name)}')
-        offline.rename_remote(self.path, old_name=self.name, new_name=name)
+        GitOffline.rename_remote(self.path, old_name=self.name, new_name=name)
         self.name = name
 
     def fetch(self, prune: bool = False, tags: bool = False, depth: Optional[int] = None,
@@ -85,7 +87,7 @@ class Remote:
             output = f'{output} {ref.short_ref}'
         CONSOLE.stdout(f'Fetch from {output}')
         try:
-            online.fetch(self.path, prune=prune, tags=tags, depth=depth, remote=self.name, ref=ref.short_ref)
+            GitOnline.fetch(self.path, prune=prune, tags=tags, depth=depth, remote=self.name, ref=ref.short_ref)
         except Exception:  # noqa
             message = f'Failed to fetch from {output}'
             if check:

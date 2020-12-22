@@ -5,28 +5,27 @@
 """
 
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, TYPE_CHECKING
 
-import pygoodle.git.model.factory as factory
-import pygoodle.git.offline as offline
-import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
 from pygoodle.git.decorators import not_detached
 from pygoodle.format import Format
-from pygoodle.git import GitConfig
-from pygoodle.git.constants import ORIGIN
-from pygoodle.git.model import (
-    AllBranches,
-    Branch,
-    Commit,
-    LocalBranch,
-    Ref,
-    Remote,
-    RemoteBranch,
-    Submodule,
-    TrackingBranch
-)
+from pygoodle.git.constants import GitConfig, ORIGIN
 from pygoodle.git.decorators import error_msg
+from pygoodle.git.offline import GitOffline
+from pygoodle.git.online import GitOnline
+
+from .branch.branch import Branch
+from .branch.local_branch import LocalBranch
+from .branch.remote_branch import RemoteBranch
+from .branch.tracking_branch import TrackingBranch
+from .commit import Commit
+from .ref import Ref
+from .remote import Remote
+
+if TYPE_CHECKING:
+    from .factory import AllBranches
+    from .submodule import Submodule
 
 
 class Repo:
@@ -51,67 +50,76 @@ class Repo:
     def clone(path: Path, url: str, depth: Optional[int] = None, ref: Optional[Ref] = None,
               jobs: Optional[int] = None) -> 'Repo':
         branch = ref.short_ref if isinstance(ref, Branch) else None
-        online.clone(path, url=url, depth=depth, branch=branch, jobs=jobs)
+        GitOnline.clone(path, url=url, depth=depth, branch=branch, jobs=jobs)
         if not isinstance(ref, Branch):
-            offline.checkout(path, ref.sha)
+            GitOffline.checkout(path, ref.sha)
         return Repo(path, default_remote=ORIGIN)
 
     @property
     def has_untracked_files(self) -> bool:
-        return offline.has_untracked_files(self.path)
+        return GitOffline.has_untracked_files(self.path)
 
     @property
     def is_dirty(self) -> bool:
-        return offline.is_dirty(self.path)
+        return GitOffline.is_dirty(self.path)
 
     @property
     def is_detached(self) -> bool:
-        return offline.is_detached(self.path)
+        return GitOffline.is_detached(self.path)
 
     @property
     def is_shallow(self) -> bool:
-        return offline.is_shallow_repo(self.path)
+        return GitOffline.is_shallow_repo(self.path)
 
     @property
     def is_rebase_in_progress(self) -> bool:
-        return offline.is_rebase_in_progress(self.path)
+        return GitOffline.is_rebase_in_progress(self.path)
 
     @property
     def remotes(self) -> List[Remote]:
-        return factory.get_remotes(self.path)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_remotes(self.path)
 
     @property
-    def submodules(self) -> List[Submodule]:
-        return factory.get_submodules(self.path)
+    def submodules(self) -> List['Submodule']:
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_submodules(self.path)
 
     @property
     def tracking_branches(self) -> List[TrackingBranch]:
-        return factory.get_tracking_branches(self.path)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_tracking_branches(self.path)
 
     @property
     def local_branches(self) -> List[LocalBranch]:
-        return factory.get_local_branches(self.path)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_local_branches(self.path)
 
     @property
     def remote_branches(self) -> List[RemoteBranch]:
-        return factory.get_all_remote_branches(self.path)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_all_remote_branches(self.path)
 
     @property
-    def all_branches(self) -> AllBranches:
-        return factory.get_all_branches(self.path)
+    def all_branches(self) -> 'AllBranches':
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_all_branches(self.path)
 
     def has_local_branch(self, name: str) -> bool:
-        return factory.has_local_branch(self.path, name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_local_branch(self.path, name)
 
     def has_remote_branch(self, name: str, remote: str) -> bool:
-        return factory.has_remote_branch(self.path, name, remote)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_remote_branch(self.path, name, remote)
 
     def has_tracking_branch(self, name: str) -> bool:
-        return factory.has_tracking_branch(self.path, name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_tracking_branch(self.path, name)
 
     @property
     def exists(self) -> bool:
-        return offline.is_repo_cloned(self.path)
+        return GitOffline.is_repo_cloned(self.path)
 
     def formatted_name(self, padding: Optional[int] = None) -> str:
         """Formatted project name"""
@@ -137,7 +145,7 @@ class Repo:
             CONSOLE.stdout(' - Dirty repo. Please stash, commit, or discard your changes')
             self.status(verbose=True)
             return
-        offline.checkout(self.path, ref=ref)
+        GitOffline.checkout(self.path, ref=ref)
 
     def is_valid(self, allow_missing: bool = True) -> bool:
         """Validate repo state
@@ -158,18 +166,19 @@ class Repo:
         return all([s.is_valid(allow_missing=allow_missing) for s in submodules])
 
     def remote(self, name: str) -> Optional[Remote]:
-        return factory.get_remote(self.path, name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_remote(self.path, name)
 
     @property
     def current_timestamp(self) -> str:
-        return offline.current_timestamp(self.path)
+        return GitOffline.current_timestamp(self.path)
 
     @property
     def current_branch(self) -> str:
-        return offline.current_branch(self.path)
+        return GitOffline.current_branch(self.path)
 
     def current_commit(self, short: bool = False) -> Commit:
-        sha = offline.current_head_commit_sha(self.path, short=short)
+        sha = GitOffline.current_head_commit_sha(self.path, short=short)
         return Commit(self.path, sha)
 
     @error_msg('Failed to abort rebase')
@@ -177,17 +186,17 @@ class Repo:
         if not self.is_rebase_in_progress:
             return
         CONSOLE.stdout(' - Abort rebase in progress')
-        offline.abort_rebase(self.path)
+        GitOffline.abort_rebase(self.path)
 
     @error_msg('Failed to add files to git index')
     def add_files(self, files: List[str]) -> None:
         CONSOLE.stdout(' - Add files to git index')
-        offline.add(self.path, files=files)
+        GitOffline.add(self.path, files=files)
 
     @error_msg('Failed to commit current changes')
     def commit(self, message: str) -> None:
         CONSOLE.stdout(' - Commit current changes')
-        offline.commit(self.path, message=message)
+        GitOffline.commit(self.path, message=message)
 
     def clean(self, untracked_directories: bool = False, force: bool = False,
               ignored: bool = False, untracked_files: bool = False) -> None:
@@ -204,20 +213,20 @@ class Repo:
             return
 
         CONSOLE.stdout(' - Clean repo')
-        offline.clean(self.path, untracked_directories=untracked_directories,
-                      force=force, ignored=ignored, untracked_files=untracked_files)
+        GitOffline.clean(self.path, untracked_directories=untracked_directories,
+                         force=force, ignored=ignored, untracked_files=untracked_files)
 
     @error_msg('Failed to pull git lfs files')
     def pull_lfs(self) -> None:
         CONSOLE.stdout(' - Pull git lfs files')
-        online.pull_lfs(self.path)
+        GitOnline.pull_lfs(self.path)
 
     @error_msg('Failed to reset repo')
     def reset(self, ref: Union[Ref, str] = ORIGIN, hard: bool = False) -> None:
         if isinstance(ref, Ref):
             ref = ref.short_ref
         CONSOLE.stdout(f' - Reset repo to {Format.Git.ref(ref)}')
-        offline.reset(self.path, ref=ref, hard=hard)
+        GitOffline.reset(self.path, ref=ref, hard=hard)
 
     @error_msg('Failed to stash current changes')
     def stash(self) -> None:
@@ -225,10 +234,10 @@ class Repo:
             CONSOLE.stdout(' - No changes to stash')
             return
         CONSOLE.stdout(' - Stash current changes')
-        offline.stash(self.path)
+        GitOffline.stash(self.path)
 
     def status(self, verbose: bool = False) -> None:
-        offline.status(self.path, verbose=verbose)
+        GitOffline.status(self.path, verbose=verbose)
 
     @error_msg('Failed to update local git config')
     def update_git_config(self, config: GitConfig) -> None:
@@ -239,18 +248,18 @@ class Repo:
 
         CONSOLE.stdout(" - Update local git config")
         for key, value in config.items():
-            offline.git_config_unset_all_local(self.path, key)
-            offline.git_config_add_local(self.path, key, value)
+            GitOffline.git_config_unset_all_local(self.path, key)
+            GitOffline.git_config_add_local(self.path, key, value)
 
     @error_msg('Failed to update git lfs hooks')
     def install_lfs_hooks(self) -> None:
         CONSOLE.stdout(' - Update git lfs hooks')
-        offline.install_lfs_hooks(self.path)
+        GitOffline.install_lfs_hooks(self.path)
 
     @error_msg('Failed to reset timestamp')
     def reset_timestamp(self, timestamp: str, ref: Ref, author: Optional[str] = None) -> None:
         CONSOLE.stdout(' - Reset timestamp')
-        offline.reset_timestamp(self.path, timestamp=timestamp, ref=ref.short_ref, author=author)
+        GitOffline.reset_timestamp(self.path, timestamp=timestamp, ref=ref.short_ref, author=author)
 
     @error_msg('Failed to update submodules')
     def submodule_update(self, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
@@ -258,24 +267,24 @@ class Repo:
                          checkout: bool = False, rebase: bool = False, merge: bool = False,
                          paths: Optional[List[Path]] = None) -> None:
         CONSOLE.stdout(' - Update submodules')
-        online.submodule_update(self.path, init=init, depth=depth, single_branch=single_branch,
-                                jobs=jobs, recursive=recursive, remote=remote, checkout=checkout,
-                                merge=merge, rebase=rebase, paths=paths)
+        GitOnline.submodule_update(self.path, init=init, depth=depth, single_branch=single_branch,
+                                   jobs=jobs, recursive=recursive, remote=remote, checkout=checkout,
+                                   merge=merge, rebase=rebase, paths=paths)
 
     @error_msg('Failed to deinit submodules')
     def submodule_deinit(self, force: bool = False, paths: Optional[List[Path]] = None) -> None:
         CONSOLE.stdout(' - Deinit submodules')
-        offline.submodule_deinit(self.path, force=force, paths=paths)
+        GitOffline.submodule_deinit(self.path, force=force, paths=paths)
 
     @error_msg('Failed to init submodules')
     def submodule_init(self, paths: Optional[List[Path]] = None) -> None:
         CONSOLE.stdout(' - Init submodules')
-        offline.submodule_init(self.path, paths=paths)
+        GitOffline.submodule_init(self.path, paths=paths)
 
     @error_msg('Failed to sync submodules')
     def submodule_sync(self, recursive: bool = False, paths: Optional[List[Path]] = None) -> None:
         CONSOLE.stdout(' - Sync submodules')
-        offline.submodule_sync(self.path, recursive=recursive, paths=paths)
+        GitOffline.submodule_sync(self.path, recursive=recursive, paths=paths)
 
     def print_local_branches(self) -> None:
         """Print local git branches"""
@@ -307,9 +316,9 @@ class Repo:
     def formatted_ref(self) -> str:
         """Formatted project repo ref"""
 
-        local_commits_count = offline.new_commits_count(self.path)
+        local_commits_count = GitOffline.new_commits_count(self.path)
         # TODO: Specify correct remote
-        upstream_commits_count = offline.new_commits_count(self.path, upstream=True)
+        upstream_commits_count = GitOffline.new_commits_count(self.path, upstream=True)
         no_local_commits = local_commits_count == 0 or local_commits_count == '0'
         no_upstream_commits = upstream_commits_count == 0 or upstream_commits_count == '0'
         if no_local_commits and no_upstream_commits:
@@ -345,10 +354,10 @@ class Repo:
         if rebase:
             message += ' with rebase'
         CONSOLE.stdout(message)
-        online.pull(self.path, rebase=rebase)
+        GitOnline.pull(self.path, rebase=rebase)
 
     @not_detached
     @error_msg('Failed to push')
     def push(self, force: bool = False) -> None:
         CONSOLE.stdout(' - Push current branch')
-        online.push(self.path, force=force)
+        GitOnline.push(self.path, force=force)

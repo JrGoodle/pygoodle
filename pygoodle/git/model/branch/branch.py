@@ -7,10 +7,10 @@
 from pathlib import Path
 from typing import Optional
 
-import pygoodle.git.offline as offline
 from pygoodle.console import CONSOLE
-from pygoodle.git.model import Ref
 from pygoodle.format import Format
+from pygoodle.git.model.ref import Ref
+from pygoodle.git.offline import GitOffline
 
 
 class Branch(Ref):
@@ -30,6 +30,7 @@ class Branch(Ref):
 
         super().__init__(path)
         self.name: str = name
+        self.check_ref_format(self.formatted_ref)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Branch):
@@ -38,7 +39,7 @@ class Branch(Ref):
 
     @property
     def is_checked_out(self) -> bool:
-        current_branch = offline.current_branch(self.path)
+        current_branch = GitOffline.current_branch(self.path)
         return current_branch == self.name
 
     @property
@@ -70,7 +71,7 @@ class Branch(Ref):
         return self.format_git_branch(self.name)
 
     def checkout(self, check: bool = True) -> None:
-        current_branch = offline.current_branch(self.path)
+        current_branch = GitOffline.current_branch(self.path)
         if current_branch == self.name:
             CONSOLE.stdout(f' - Branch {Format.Git.ref(self.short_ref)} already checked out')
             return

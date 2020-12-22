@@ -6,12 +6,13 @@
 
 from pathlib import Path
 
-import pygoodle.git.model.factory as factory
-import pygoodle.git.online as online
 from pygoodle.console import CONSOLE
-from pygoodle.git.decorators import error_msg
 from pygoodle.format import Format
-from pygoodle.git.model import Remote, Tag
+
+from ...decorators import error_msg
+from ...online import GitOnline
+from ..remote import Remote
+from .tag import Tag
 
 
 class RemoteTag(Tag):
@@ -40,7 +41,7 @@ class RemoteTag(Tag):
     @property
     def sha(self) -> str:
         """Commit sha"""
-        return online.get_remote_tag_sha(self.path, self.name, self.remote.name)
+        return GitOnline.get_remote_tag_sha(self.path, self.name, self.remote.name)
 
     def create(self) -> None:
         if self.exists:
@@ -54,8 +55,9 @@ class RemoteTag(Tag):
             CONSOLE.stdout(f" - Remote tag {Format.Git.ref(self.short_ref)} doesn't exist")
             return
         CONSOLE.stdout(f' - Delete remote tag {Format.Git.ref(self.short_ref)}')
-        online.delete_remote_tag(self.path, name=self.name, remote=self.remote.name)
+        GitOnline.delete_remote_tag(self.path, name=self.name, remote=self.remote.name)
 
     @property
     def exists(self) -> bool:
-        return factory.has_remote_tag(self.path, self.name, self.remote.name)
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_remote_tag(self.path, self.name, self.remote.name)

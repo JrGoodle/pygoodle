@@ -4,9 +4,8 @@
 
 """
 
-from typing import Dict
-
-from pygoodle.git.constants import (
+from .constants import (
+    GitConfig,
     HEAD,
     ORIGIN,
     FETCH_URL,
@@ -15,21 +14,20 @@ from pygoodle.git.constants import (
     GIT_CONFIG
 )
 
-from pygoodle.git.model import (
-    AllBranches,
-    Branch,
-    Commit,
-    LocalBranch,
-    LocalTag,
-    Protocol,
-    Ref,
-    Remote,
-    RemoteBranch,
-    RemoteTag,
-    Repo,
-    Submodule,
-    Tag,
-    TrackingBranch
-)
+from .model.factory import AllBranches
+from .model.branch.branch import Branch
+from .model.commit import Commit
+from .model.branch.local_branch import LocalBranch
+from .model.tag.local_tag import LocalTag
+from .model.protocol import Protocol
+from .model.ref import Ref
+from .model.remote import Remote
+from .model.branch.remote_branch import RemoteBranch
+from .model.tag.remote_tag import RemoteTag
+from .model.repo import Repo
+from .model.submodule import Submodule
+from .model.tag.tag import Tag
+from .model.branch.tracking_branch import TrackingBranch
 
-GitConfig = Dict[str, str]
+from .offline import GitOffline
+from .online import GitOnline

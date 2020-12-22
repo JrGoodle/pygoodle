@@ -7,9 +7,9 @@
 from pathlib import Path
 from typing import Optional
 
-import pygoodle.git.offline as offline
 from pygoodle.console import CONSOLE
 from pygoodle.git.log import LOG
+from pygoodle.git.offline import GitOffline
 
 
 class Ref:
@@ -26,7 +26,6 @@ class Ref:
         """
 
         self.path: Path = path
-        self.check_ref_format(self.formatted_ref)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Ref):
@@ -87,7 +86,7 @@ class Ref:
         :return: True, if git ref is a valid format
         """
 
-        return offline.check_ref_format(ref)
+        return GitOffline.check_ref_format(ref)
 
     @staticmethod
     def format_git_branch(branch: str) -> str:
@@ -113,7 +112,7 @@ class Ref:
 
     def checkout(self, check: bool = True) -> None:
         try:
-            offline.checkout(self.path, ref=self.short_ref)
+            GitOffline.checkout(self.path, ref=self.short_ref)
         except Exception:  # noqa
             message = f'Failed to checkout'
             if check:

@@ -6,9 +6,9 @@
 
 from pathlib import Path
 
-import pygoodle.git.offline as offline
 from pygoodle.console import CONSOLE
-from pygoodle.git.model import Ref
+from pygoodle.git.model.ref import Ref
+from pygoodle.git.offline import GitOffline
 
 
 class Tag(Ref):
@@ -28,6 +28,7 @@ class Tag(Ref):
 
         super().__init__(path)
         self.name: str = name
+        self.check_ref_format(self.formatted_ref)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Tag):
@@ -56,7 +57,7 @@ class Tag(Ref):
         return self.format_git_tag(self.name)
 
     def checkout(self, check: bool = True) -> None:
-        current_commit = offline.current_head_commit_sha(self.path)
+        current_commit = GitOffline.current_head_commit_sha(self.path)
         if current_commit == self.sha:
             CONSOLE.stdout(' - On correct commit for tag')
             return

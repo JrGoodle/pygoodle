@@ -7,10 +7,11 @@
 from pathlib import Path
 from typing import Optional
 
-import pygoodle.git.offline as offline
-import pygoodle.git.online as online
 from pygoodle.git.constants import ORIGIN
-from . import Repo
+from pygoodle.git.offline import GitOffline
+from pygoodle.git.online import GitOnline
+
+from .repo import Repo
 
 
 class Submodule(Repo):
@@ -36,7 +37,7 @@ class Submodule(Repo):
         self.repo_path: Path = repo_path
         self.submodule_path: Path = submodule_path
         self.path: Path = self.path / self.submodule_path
-        self.submodule_git_dir: Optional[Path] = offline.get_submodule_git_dir(self.path)
+        self.submodule_git_dir: Optional[Path] = GitOffline.get_submodule_git_dir(self.path)
         self.url: str = url
         self.commit: str = commit
         self.branch: Optional[str] = branch
@@ -44,43 +45,43 @@ class Submodule(Repo):
 
     @property
     def exists(self) -> bool:
-        return offline.is_submodule_cloned(self.path, self.submodule_path)
+        return GitOffline.is_submodule_cloned(self.path, self.submodule_path)
 
     @property
     def is_initialized(self) -> bool:
         # TODO: Also check for .git dir in addition to .git file pointing to .git dir in superproject git dir
-        return offline.is_submodule_initialized(self.path, self.submodule_path)
+        return GitOffline.is_submodule_initialized(self.path, self.submodule_path)
 
     def absorbgitdirs(self) -> None:
-        offline.submodule_absorbgitdirs(self.repo_path, paths=[self.submodule_path])
+        GitOffline.submodule_absorbgitdirs(self.repo_path, paths=[self.submodule_path])
 
     def add(self, repo: str, branch: Optional[str] = None, force: bool = False,
             name: Optional[str] = None, reference: Optional[str] = None, depth: Optional[int] = None,
             submodule_path: Optional[Path] = None) -> None:
-        offline.submodule_add(self.repo_path, repo, branch=branch, force=force, name=name,
-                              reference=reference, depth=depth, submodule_path=submodule_path)
+        GitOffline.submodule_add(self.repo_path, repo, branch=branch, force=force, name=name,
+                                 reference=reference, depth=depth, submodule_path=submodule_path)
 
     def deinit(self, force: bool = False) -> None:
-        offline.submodule_deinit(self.repo_path, force=force, paths=[self.submodule_path])
+        GitOffline.submodule_deinit(self.repo_path, force=force, paths=[self.submodule_path])
 
     def init(self) -> None:
-        offline.submodule_init(self.repo_path, paths=[self.submodule_path])
+        GitOffline.submodule_init(self.repo_path, paths=[self.submodule_path])
 
     def set_branch(self, branch: str) -> None:
-        offline.submodule_set_branch(self.repo_path, self.submodule_path, branch)
+        GitOffline.submodule_set_branch(self.repo_path, self.submodule_path, branch)
 
     def set_url(self, url: str) -> None:
-        offline.submodule_set_url(self.repo_path, self.submodule_path, url)
+        GitOffline.submodule_set_url(self.repo_path, self.submodule_path, url)
 
     def unset_branch(self) -> None:
-        offline.submodule_unset_branch(self.repo_path, self.submodule_path)
+        GitOffline.submodule_unset_branch(self.repo_path, self.submodule_path)
 
     def sync(self, recursive: bool = False) -> None:
-        offline.submodule_sync(self.repo_path, recursive=recursive, paths=[self.submodule_path])
+        GitOffline.submodule_sync(self.repo_path, recursive=recursive, paths=[self.submodule_path])
 
     def update(self, init: bool = False, depth: Optional[int] = None, single_branch: bool = False,
                jobs: Optional[int] = None, recursive: bool = False, checkout: bool = False,
                rebase: bool = False, merge: bool = False) -> None:
-        online.submodule_update(self.repo_path, init=init, depth=depth, single_branch=single_branch, jobs=jobs,
-                                recursive=recursive, checkout=checkout, merge=merge, rebase=rebase,
-                                paths=[self.submodule_path])
+        GitOnline.submodule_update(self.repo_path, init=init, depth=depth, single_branch=single_branch, jobs=jobs,
+                                   recursive=recursive, checkout=checkout, merge=merge, rebase=rebase,
+                                   paths=[self.submodule_path])
