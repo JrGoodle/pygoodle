@@ -27,15 +27,17 @@ class Remote:
     :ivar str push_url: Push url
     """
 
-    def __init__(self, path: Path, name: str):
+    def __init__(self, path: Path, name: str, default_url: Optional[str] = None):
         """GitRemote __init__
 
         :param Path path: Path to git repo
         :param str name: Branch
+        :param Optional[str] default_url: Default remote url
         """
 
         self.name: str = name
         self.path: Path = path
+        self.default_url: Optional[str] = default_url
 
     @property
     def fetch_url(self) -> str:
