@@ -51,8 +51,8 @@ class ProcessOutput:
             branch = Format.remove_prefix('refs/heads', output)
         elif output.startswith('refs/remotes'):
             components = Format.remove_prefix('refs/remotes', output).split('/')
-            remote = components[2]
-            branch = components[3]
+            remote = components[0]
+            branch = components[1]
         else:
             raise Exception('Failed to parse tracking branch output')
         return branch, remote
