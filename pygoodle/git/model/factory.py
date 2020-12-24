@@ -50,6 +50,24 @@ class GitFactory:
         return remote[0] if remote else None
 
     @classmethod
+    def has_remote_with_name(cls, path: Path, name: str) -> bool:
+        remotes = GitFactory.get_remotes(path)
+        remote = [r for r in remotes if r.name == name]
+        return bool(remote)
+
+    @classmethod
+    def has_remote_with_fetch_url(cls, path: Path, url: str) -> bool:
+        remotes = GitFactory.get_remotes(path)
+        remote = [r for r in remotes if r.fetch_url is not None and r.fetch_url == url]
+        return bool(remote)
+
+    @classmethod
+    def has_remote_with_push_url(cls, path: Path, url: str) -> bool:
+        remotes = GitFactory.get_remotes(path)
+        remote = [r for r in remotes if r.push_url is not None and r.push_url == url]
+        return bool(remote)
+
+    @classmethod
     def get_local_branches(cls, path: Path) -> List[LocalBranch]:
         branches = GitOffline.get_local_branches_info(path)
         branches = [LocalBranch(path, branch) for branch in branches]

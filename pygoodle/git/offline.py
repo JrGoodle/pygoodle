@@ -99,10 +99,9 @@ class GitOffline:
             return None
 
     @classmethod
-    def save_default_branch(cls, path: Path, remote: str, branch: str) -> None:
+    def save_default_branch(cls, git_dir: Path, remote: str, branch: str) -> None:
         """Save default branch"""
 
-        git_dir = path / '.git'
         if not git_dir.exists():
             return
         remote_head_ref = git_dir / 'refs' / 'remotes' / remote / HEAD

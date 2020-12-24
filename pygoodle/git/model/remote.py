@@ -27,17 +27,15 @@ class Remote:
     :ivar str push_url: Push url
     """
 
-    def __init__(self, path: Path, name: str, default_url: Optional[str] = None):
+    def __init__(self, path: Path, name: str):
         """GitRemote __init__
 
         :param Path path: Path to git repo
         :param str name: Branch
-        :param Optional[str] default_url: Default remote url
         """
 
         self.name: str = name
         self.path: Path = path
-        self.default_url: Optional[str] = default_url
 
     @property
     def fetch_url(self) -> str:
@@ -62,18 +60,19 @@ class Remote:
 
     @property
     def exists(self) -> bool:
-        raise NotImplementedError
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.has_remote_with_name(self.path, self.name)
 
-    @property
-    def default_branch(self) -> RemoteBranch:
+    def default_branch(self, git_dir: Path, url: str) -> Optional[RemoteBranch]:
         if GitOffline.is_repo_cloned(self.path):
             default_branch = GitOffline.get_default_branch(self.path, self.name)
             if default_branch is not None:
                 return RemoteBranch(self.path, default_branch, self.name)
-
-        default_branch = GitOnline.get_default_branch(self.fetch_url)
-        # FIXME: Need to use git_dir here instead of path
-        GitOffline.save_default_branch(self.path, self.name, self.fetch_url)
+        default_branch = GitOnline.get_default_branch(url)
+        if default_branch is None:
+            return None
+        if git_dir.is_dir():
+            GitOffline.save_default_branch(git_dir, self.name, default_branch)
         return RemoteBranch(self.path, default_branch, self.name)
 
     @error_msg('Failed to rename remote')
