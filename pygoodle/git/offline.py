@@ -130,7 +130,7 @@ class GitOffline:
     @classmethod
     def is_dirty(cls, path: Path) -> bool:
         result = cmd.run_silent(f'git diff-index --quiet {HEAD} --', cwd=path)
-        return result.returncode == 0
+        return result.returncode != 0
 
     @classmethod
     def is_rebase_in_progress(cls, path: Path) -> bool:

@@ -20,6 +20,7 @@ from .branch.local_branch import LocalBranch
 from .branch.remote_branch import RemoteBranch
 from .branch.tracking_branch import TrackingBranch
 from .commit import Commit
+from .protocol import Protocol
 from .ref import Ref
 from .remote import Remote
 
@@ -35,7 +36,8 @@ class Repo:
     :ivar str default_remote: Default remote name
     """
 
-    def __init__(self, path: Path, default_remote: Optional[str] = None):
+    def __init__(self, path: Path, default_remote: Optional[str] = None, url: Optional[str] = None,
+                 protocol: Protocol = Protocol.SSH):
         """LocalRepo __init__
 
         :param Path path: Absolute path to repo
@@ -45,6 +47,8 @@ class Repo:
         self.path: Path = path
         self.git_dir: Path = self.path / '.git'
         self.default_remote: Optional[Remote] = Remote(self.path, default_remote)
+        self.url: Optional[str] = url
+        self.protocol: Protocol = protocol
 
     @staticmethod
     def clone(path: Path, url: str, depth: Optional[int] = None, ref: Optional[Ref] = None,
@@ -120,25 +124,6 @@ class Repo:
     @property
     def exists(self) -> bool:
         return GitOffline.is_repo_cloned(self.path)
-
-    def formatted_name(self, padding: Optional[int] = None) -> str:
-        """Formatted project name"""
-
-        if not self.exists:
-            return str(self.path)
-
-        if self.is_dirty:
-            output = f'{self.path}*'
-        else:
-            output = str(self.path)
-
-        if padding is not None:
-            output = output.ljust(padding)
-
-        if '*' in output:
-            return Format.red(output)
-
-        return Format.green(output)
 
     def checkout(self, ref: str) -> None:
         if self.is_dirty:
@@ -316,21 +301,23 @@ class Repo:
     def formatted_ref(self) -> str:
         """Formatted project repo ref"""
 
-        local_commits_count = GitOffline.new_commits_count(self.path)
-        # TODO: Specify correct remote
-        upstream_commits_count = GitOffline.new_commits_count(self.path, upstream=True)
-        no_local_commits = local_commits_count == 0 or local_commits_count == '0'
-        no_upstream_commits = upstream_commits_count == 0 or upstream_commits_count == '0'
-        if no_local_commits and no_upstream_commits:
-            status = ''
-        else:
-            local_commits_output = Format.yellow(f'+{local_commits_count}')
-            upstream_commits_output = Format.red(f'-{upstream_commits_count}')
-            status = f'({local_commits_output}/{upstream_commits_output})'
-
         if self.is_detached:
             return Format.Git.ref(Format.escape(f'[HEAD @ {self.current_commit()}]'))
-        return Format.Git.ref(Format.escape(f'[{self.current_branch}]')) + status
+
+        current_branch_output = Format.Git.ref(Format.escape(f'[{self.current_branch}]'))
+
+        local_commits_count = GitOffline.new_commits_count(self.path)
+        no_local_commits = local_commits_count == 0
+        # TODO: Specify correct remote
+        upstream_commits_count = GitOffline.new_commits_count(self.path, upstream=True)
+        no_upstream_commits = upstream_commits_count == 0
+
+        if no_local_commits and no_upstream_commits:
+            return current_branch_output
+
+        local_commits_output = Format.yellow(f'+{local_commits_count}')
+        upstream_commits_output = Format.red(f'-{upstream_commits_count}')
+        return f'{current_branch_output}({local_commits_output}/{upstream_commits_output})'
 
     def print_remote_branches(self) -> None:
         """Print remote git branches"""
