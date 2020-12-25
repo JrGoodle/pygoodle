@@ -45,8 +45,8 @@ class Task:
 
 class TaskPool:
 
-    def __init__(self, jobs: int):
-        self._jobs: int = jobs
+    def __init__(self, jobs: Optional[int] = None):
+        self._jobs: Optional[int] = jobs
         self._lock: Lock = Lock()
         self._results: Optional[List[Any]] = None
         self.cancelled: bool = False
@@ -76,32 +76,37 @@ class TaskPool:
     async def _run(self, tasks: List[Task]) -> List[Any]:
         try:
             async with trio.open_nursery() as nursery:
-                limit = trio.CapacityLimiter(self._jobs)
+                limit = None if self._jobs is None else trio.CapacityLimiter(self._jobs)
                 self.before_tasks(tasks)
                 self._results = []
+                index = 0
                 try:
                     for task in tasks:
-                        await limit.acquire_on_behalf_of(task.name)
-                        nursery.start_soon(self._run_task, task, limit, nursery)
+                        if limit is not None:
+                            await limit.acquire_on_behalf_of(task.name)
+                        nursery.start_soon(self._run_task, index, task, limit, nursery)
+                        index += 1
                 except BaseException:
                     nursery.cancel_scope.cancel()
                     self.cancelled = True
                     raise
-            return self._results
+            results = sorted(self._results, key=lambda i, _: i)
+            return [r for _, r in results]
         except BaseException:
             self.cancelled = True
             raise
         finally:
             self.after_tasks(tasks)
 
-    async def _run_task(self, task: Task, limit: trio.CapacityLimiter, nursery: trio.Nursery) -> Any:
+    async def _run_task(self, index: int, task: Task, limit: Optional[trio.CapacityLimiter],
+                        nursery: trio.Nursery) -> Any:
         with task.in_pool(self):
             try:
                 self.before_task(task)
                 task.before_task()
                 result = await trio.to_thread.run_sync(task.run)
                 with self._lock:
-                    self._results.append(result)
+                    self._results.append((index, result))
             except BaseException:
                 self.cancelled = True
                 nursery.cancel_scope.cancel()
@@ -109,4 +114,5 @@ class TaskPool:
             finally:
                 task.after_task()
                 self.after_task(task)
-                limit.release_on_behalf_of(task.name)
+                if limit is not None:
+                    limit.release_on_behalf_of(task.name)
