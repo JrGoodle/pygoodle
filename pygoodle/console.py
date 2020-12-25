@@ -7,7 +7,7 @@
 import sys
 from functools import wraps
 from io import StringIO
-from typing import Any
+from typing import Any, List
 
 from rich.console import Console as RichConsole
 
@@ -35,6 +35,7 @@ class Console:
     """Console class"""
 
     def __init__(self):
+        self._queue: List[str] = []
         self.print_output: bool = True
         self._stdout: RichConsole = RichConsole(force_terminal=True,
                                                 # color_system='256',
@@ -66,6 +67,20 @@ class Console:
         if self.print_output or force:
             for _ in range(count):
                 print('\033[A                             \033[A')
+
+    def queue_stdout(self, output: Any = '', newline: bool = False) -> None:
+        if isinstance(output, list):
+            self._queue += output
+        elif isinstance(output, str):
+            self._queue.append(output)
+
+        if newline:
+            self._queue.append('')
+
+    def flush_stdout(self, force: bool = False) -> None:
+        if self.print_output or force:
+            self._stdout.print('\n'.join(self._queue))
+        self._queue = []
 
     @property
     def width(self) -> int:
