@@ -10,6 +10,7 @@ from typing import Any, List, Optional
 import trio
 
 from pygoodle.console import disable_output
+from pygoodle.util import values_sorted_by_key
 
 
 class Task:
@@ -78,7 +79,7 @@ class TaskPool:
             async with trio.open_nursery() as nursery:
                 limit = None if self._jobs is None else trio.CapacityLimiter(self._jobs)
                 self.before_tasks(tasks)
-                self._results = []
+                self._results = {}
                 index = 0
                 try:
                     for task in tasks:
@@ -90,8 +91,7 @@ class TaskPool:
                     nursery.cancel_scope.cancel()
                     self.cancelled = True
                     raise
-            results = sorted(self._results, key=lambda i, _: i)
-            return [r for _, r in results]
+            return values_sorted_by_key(self._results)
         except BaseException:
             self.cancelled = True
             raise
@@ -106,7 +106,7 @@ class TaskPool:
                 task.before_task()
                 result = await trio.to_thread.run_sync(task.run)
                 with self._lock:
-                    self._results.append((index, result))
+                    self._results[index] = result
             except BaseException:
                 self.cancelled = True
                 nursery.cancel_scope.cancel()
