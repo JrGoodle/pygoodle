@@ -76,7 +76,7 @@ class GitOnline:
 
     @classmethod
     def fetch(cls, path: Path, prune: bool = False, tags: bool = False, depth: Optional[int] = None,
-              remote: str = '', ref: str = '', unshallow: bool = False) -> CompletedProcess:
+              remote: Optional[str] = None, ref: Optional[str] = None, unshallow: bool = False) -> CompletedProcess:
         args = ''
         if prune:
             args += ' --prune '
@@ -86,6 +86,8 @@ class GitOnline:
             args += f' --depth {depth}'
         if unshallow:
             args += ' --unshallow '
+        remote = '' if remote is None else remote
+        ref = '' if ref is None else ref
         return cmd.run(f"git fetch {args} {remote} {ref}", cwd=path)
 
     @classmethod

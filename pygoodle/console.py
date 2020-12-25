@@ -68,7 +68,7 @@ class Console:
             for _ in range(count):
                 print('\033[A                             \033[A')
 
-    def queue_stdout(self, output: Any = '', newline: bool = False) -> None:
+    def enqueue_stdout(self, output: Any = '', newline: bool = False) -> None:
         if isinstance(output, list):
             self._queue += output
         elif isinstance(output, str):

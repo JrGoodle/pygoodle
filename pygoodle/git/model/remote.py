@@ -85,10 +85,11 @@ class Remote:
               ref: Optional[Ref] = None, check: bool = True) -> None:
         output = self.name
         if ref is not None:
+            ref = ref.short_ref
             output = f'{output} {ref.short_ref}'
         CONSOLE.stdout(f'Fetch from {output}')
         try:
-            GitOnline.fetch(self.path, prune=prune, tags=tags, depth=depth, remote=self.name, ref=ref.short_ref)
+            GitOnline.fetch(self.path, prune=prune, tags=tags, depth=depth, remote=self.name, ref=ref)
         except Exception:  # noqa
             message = f'Failed to fetch from {output}'
             if check:

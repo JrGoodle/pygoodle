@@ -23,11 +23,12 @@ class ProgressTask(Task):
 
     def before_task(self) -> None:
         super().before_task()
-        self.progress.add_subtask(self.name, total=self.total, units=self.units, start=self.start)
+        if self.progress is not None:
+            self.progress.add_subtask(self.name, total=self.total, units=self.units, start=self.start)
 
     def after_task(self) -> None:
         super().after_task()
-        if not self.cancelled:
+        if self.progress is not None and not self.cancelled:
             self.progress.complete_subtask(self.name)
 
     def run(self) -> None:
@@ -36,12 +37,13 @@ class ProgressTask(Task):
 
 class ProgressTaskPool(TaskPool):
 
-    def __init__(self, jobs: int, title: str, units: str = '',
-                 console: Console = CONSOLE.stdout_console):
+    def __init__(self, title: str, units: str = '', jobs: Optional[int] = None,
+                 console: Console = CONSOLE.stdout_console, print_subprogress: bool = True):
         super().__init__(jobs)
         self._title: str = title
         self._units = units
         self.progress: Progress = Progress(console=console)
+        self._print_subprogress: bool = print_subprogress
 
     def __enter__(self):
         self.progress.start()
@@ -52,8 +54,9 @@ class ProgressTaskPool(TaskPool):
 
     def before_tasks(self, tasks: List[ProgressTask]) -> None:
         super().before_tasks(tasks)
-        for task in tasks:
-            task.progress = self.progress
+        if self._print_subprogress:
+            for task in tasks:
+                task.progress = self.progress
         self.progress.start()
         self.progress.add_task(self._title, total=len(tasks), units=self._units)
 
