@@ -29,8 +29,8 @@ def enable_network_connection(gateway_address: Optional[str]) -> [CompletedProce
             result = cmd.run(f"route add default gw {gateway_address}", path)
             results.append(result)
     elif platform == "darwin":
-        result = cmd.run("networksetup -setairportpower airport on", path)
-        sleep(2)
+        result = cmd.run("networksetup -setairportpower airport on", path, check=False)
+        sleep(5)
     elif platform == "win32":
         raise NotImplementedError
     else:

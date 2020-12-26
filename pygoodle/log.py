@@ -20,6 +20,7 @@ class Log:
 
     VERBOSE: int = 5
     DEBUG: int = logging.DEBUG
+    WARNING: int = logging.WARNING
     ERROR: int = logging.ERROR
 
     def __init__(self, name: str):
@@ -32,6 +33,8 @@ class Log:
             self.level = self.VERBOSE
         elif LOG_LEVEL == 'DEBUG' or IS_DEBUG:
             self.level = self.DEBUG
+        elif LOG_LEVEL == 'WARNING':
+            self.level = self.WARNING
         else:
             self.level = self.ERROR
 
@@ -50,6 +53,10 @@ class Log:
     def debug(self, message: Optional[str] = None, error: Optional[BaseException] = None) -> None:  # noqa
         if self.logger.level <= logging.DEBUG:
             self._log(logging.DEBUG, message, error)
+
+    def warning(self, message: Optional[str] = None, error: Optional[BaseException] = None) -> None:  # noqa
+        if self.logger.level <= logging.WARNING:
+            self._log(logging.WARNING, message, error)
 
     def verbose(self, message: Optional[str] = None, error: Optional[BaseException] = None) -> None:  # noqa
         if self.logger.level <= self.VERBOSE:

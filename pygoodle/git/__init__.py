@@ -10,8 +10,7 @@ from .constants import (
     ORIGIN,
     FETCH_URL,
     PUSH_URL,
-    GITMODULES,
-    GIT_CONFIG
+    GITMODULES
 )
 
 from .model.factory import AllBranches

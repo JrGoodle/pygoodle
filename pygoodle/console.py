@@ -7,7 +7,7 @@
 import sys
 from functools import wraps
 from io import StringIO
-from typing import Any, List
+from typing import Any, List, Optional
 
 from rich.console import Console as RichConsole
 
@@ -52,10 +52,14 @@ class Console:
         return self._stdout
 
     def stderr(self, output: Any = '', force: bool = False) -> None:
+        if output is None:
+            return
         if self.print_output or force:
             self._stderr.log(output)
 
     def stdout(self, output: Any = '', force: bool = False) -> None:
+        if output is None:
+            return
         if self.print_output or force:
             self._stdout.print(output)
 
@@ -69,6 +73,8 @@ class Console:
                 print('\033[A                             \033[A')
 
     def enqueue_stdout(self, output: Any = '', newline: bool = False) -> None:
+        if output is None:
+            return
         if isinstance(output, list):
             self._queue += output
         elif isinstance(output, str):
@@ -95,7 +101,9 @@ class Console:
         print(console.is_terminal)
         print(console.is_dumb_terminal)
 
-    def _pretty_log_message(self, output: Any) -> str:
+    def _pretty_log_message(self, output: Any) -> Optional[str]:
+        if output is None:
+            return None
         self._stringio.print(output)
         output = self._stringio.file.getvalue()
         return output

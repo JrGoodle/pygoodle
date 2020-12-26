@@ -48,12 +48,16 @@ def remove_file(file: Path) -> None:
 
 
 def remove(path: Path) -> None:
-    if not path.exists():
-        return
-    if path.is_dir():
+    if path.is_symlink():
+        path.unlink()
+    elif path.is_dir():
         remove_dir(path)
     elif path.is_file():
         remove_file(path)
+
+
+def is_relative_to(path: Path, prefix: Path) -> bool:
+    return str(path).startswith(str(prefix))
 
 
 def replace_path_prefix(path: Path, old_prefix: Path, new_prefix: Path):
@@ -158,6 +162,27 @@ def symlink_to(path: Path, target: Path) -> None:
     assert is_relative_symlink_from_to(path, str(target))
 
 
+def symlink_relative_to(source: Path, target: Path, relative_to: Path) -> None:
+    """Create relative symlink
+
+    :param Path source: File to create symlink pointing to
+    :param Path target: Symlink location
+    :param Path relative_to: Directory source is relative to
+    :raise ExistingFileError:
+    :raise MissingSourceError:
+    """
+
+    source = source.relative_to(relative_to)
+    try:
+        path = target.parent
+        fd = os.open(path, os.O_DIRECTORY)
+        os.symlink(source, target, dir_fd=fd)
+        os.close(fd)
+    except OSError:
+        # LOG.error(f"Failed to symlink file {Format.path(target)} -> {Format.path(source)}")
+        raise
+
+
 def copy_file(path: Path, destination: Path) -> None:
     shutil.copyfile(path, destination)
     assert destination.is_file()
@@ -173,9 +198,7 @@ def is_relative_symlink_from_to(symlink: Path, destination: str) -> bool:
         return False
     link = os.readlink(symlink)
     is_relative = not Path(link).is_absolute()
-    if not is_relative:
-        return False
-    return True
+    return is_relative
 
 
 def copy_directory(from_dir: Path, to: Path):

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from pygoodle.console import CONSOLE
-from pygoodle.git.log import LOG
+from pygoodle.git.log import GIT_LOG
 from pygoodle.git.offline import GitOffline
 
 
@@ -110,12 +110,12 @@ class Ref:
         prefix = "refs/tags/"
         return tag if tag.startswith(prefix) else f"{prefix}{tag}"
 
-    def checkout(self, check: bool = True) -> None:
+    def checkout(self, check: bool = True, track: bool = False) -> None:
         try:
-            GitOffline.checkout(self.path, ref=self.short_ref)
+            GitOffline.checkout(self.path, ref=self.short_ref, track=track)
         except Exception:  # noqa
             message = f'Failed to checkout'
             if check:
-                LOG.error(message)
+                GIT_LOG.error(message)
                 raise
             CONSOLE.stdout(f' - {message}')

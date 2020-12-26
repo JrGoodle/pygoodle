@@ -35,6 +35,13 @@ class Tag(Ref):
             return self.name == other.name and self.path == other.path
         return False
 
+    def __lt__(self, other: 'Tag') -> bool:
+        return self.name < other.name
+
+    @property
+    def is_checked_out(self) -> bool:
+        raise NotImplementedError
+
     @property
     def is_tag(self) -> bool:
         return True
@@ -56,10 +63,10 @@ class Tag(Ref):
 
         return self.format_git_tag(self.name)
 
-    def checkout(self, check: bool = True) -> None:
+    def checkout(self, check: bool = True, track: bool = False) -> None:
         current_commit = GitOffline.current_head_commit_sha(self.path)
         if current_commit == self.sha:
             CONSOLE.stdout(' - On correct commit for tag')
             return
         CONSOLE.stdout(f' - Checkout tag {self.name}')
-        super().checkout(check=check)
+        super().checkout(check=check, track=track)

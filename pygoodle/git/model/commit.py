@@ -58,10 +58,11 @@ class Commit(Ref):
 
         return self.sha
 
-    def checkout(self, check: bool = True) -> None:
+    def checkout(self, check: bool = True, track: bool = False) -> None:
         current_commit = GitOffline.current_head_commit_sha(self.path)
-        if current_commit == self.sha:
+        # TODO: Should this always check out detached HEAD?
+        if current_commit == self.sha and GitOffline.is_detached(self.path):
             CONSOLE.stdout(' - On correct commit')
             return
         CONSOLE.stdout(f' - Checkout commit {Format.Git.ref(self.short_ref)}')
-        super().checkout(check=check)
+        super().checkout(check=check, track=track)

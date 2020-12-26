@@ -7,7 +7,7 @@
 from pathlib import Path
 from typing import Optional
 
-from pygoodle.git.constants import ORIGIN
+# from pygoodle.git.constants import ORIGIN
 from pygoodle.git.offline import GitOffline
 from pygoodle.git.online import GitOnline
 
@@ -21,45 +21,46 @@ class Submodule(Repo):
     :ivar Path submodule_path: Relative path to submodule
     """
 
-    def __init__(self, repo_path: Path, submodule_path: Path, url: str, commit: str,
+    def __init__(self, repo_path: Path, submodule_path: Path, url: Optional[str] = None, commit: Optional[str] = None,
                  branch: Optional[str] = None, active: Optional[bool] = None):
         """LocalRepo __init__
 
         :param Path repo_path: Absolute path to repo
         :param Path submodule_path: Relative path to submodule
-        :param str url: Remote url
-        :param str commit: Current commit sha stored in git tree
+        :param Optional[str] url: Remote url
+        :param Optional[str] commit: Current commit sha stored in git tree
         :param Optional[str] branch: Branch to track
         :param Optional[bool] active: Whether submodule is active
         """
 
-        super().__init__(repo_path, default_remote=ORIGIN)
         self.repo_path: Path = repo_path
         self.submodule_path: Path = submodule_path
-        self.path: Path = self.path / self.submodule_path
-        self.submodule_git_dir: Optional[Path] = GitOffline.get_submodule_git_dir(self.path)
-        self.url: str = url
-        self.commit: str = commit
-        self.branch: Optional[str] = branch
-        self.active: Optional[bool] = active
+        super().__init__(repo_path / submodule_path)
+        self._url: Optional[str] = url
+        self._commit: Optional[str] = commit
+        self._branch: Optional[str] = branch
+        self._active: Optional[bool] = active
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Submodule):
+            return self.path == other.path
+        return False
+
+    def __lt__(self, other: 'Submodule') -> bool:
+        return self.path < other.path
 
     @property
     def exists(self) -> bool:
-        return GitOffline.is_submodule_cloned(self.path, self.submodule_path)
+        is_initialized = GitOffline.is_submodule_initialized(self.repo_path, self.submodule_path)
+        is_cloned = GitOffline.is_submodule_cloned(self.repo_path, self.submodule_path)
+        return is_initialized and is_cloned
 
     @property
     def is_initialized(self) -> bool:
-        # TODO: Also check for .git dir in addition to .git file pointing to .git dir in superproject git dir
-        return GitOffline.is_submodule_initialized(self.path, self.submodule_path)
+        return GitOffline.is_submodule_initialized(self.repo_path, self.submodule_path)
 
     def absorbgitdirs(self) -> None:
         GitOffline.submodule_absorbgitdirs(self.repo_path, paths=[self.submodule_path])
-
-    def add(self, repo: str, branch: Optional[str] = None, force: bool = False,
-            name: Optional[str] = None, reference: Optional[str] = None, depth: Optional[int] = None,
-            submodule_path: Optional[Path] = None) -> None:
-        GitOffline.submodule_add(self.repo_path, repo, branch=branch, force=force, name=name,
-                                 reference=reference, depth=depth, submodule_path=submodule_path)
 
     def deinit(self, force: bool = False) -> None:
         GitOffline.submodule_deinit(self.repo_path, force=force, paths=[self.submodule_path])

@@ -4,8 +4,8 @@ from functools import wraps
 from typing import Callable, Union
 
 from pygoodle.console import CONSOLE
-
-from .log import LOG
+from pygoodle.git.offline import GitOffline
+from pygoodle.git.log import GIT_LOG
 
 
 def output_msg(message: Union[Callable, str]):
@@ -35,7 +35,7 @@ def error_msg(message: Union[Callable, str]):
             try:
                 return func(*args, **kwargs)
             except Exception:
-                LOG.error(msg)
+                GIT_LOG.error(msg)
                 raise
         return wrapper
     return decorator
@@ -49,9 +49,9 @@ def not_detached(func):
         """Wrapper"""
 
         instance = args[0]
-        if instance.is_detached:
+        if GitOffline.is_detached(instance.path):
             CONSOLE.stdout(' - HEAD is detached')
-            return
+            raise Exception('Detached HEAD')
         return func(*args, **kwargs)
 
     return wrapper

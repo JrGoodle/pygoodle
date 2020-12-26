@@ -6,4 +6,4 @@
 
 from pygoodle.log import Log
 
-LOG = Log('PYGOODLE.GIT')
+GIT_LOG = Log('PYGOODLE.GIT')

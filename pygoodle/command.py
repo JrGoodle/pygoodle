@@ -21,7 +21,10 @@ def get_stdout(command: str, cwd: Path = Path.cwd()) -> Optional[str]:
     if result.returncode != 0:
         return None
     output: str = result.stdout
-    return output.strip()
+    output = output.strip()
+    if not output:
+        return None
+    return output
 
 
 def run_silent(command: str, cwd: Path = Path.cwd()) -> CompletedProcess:

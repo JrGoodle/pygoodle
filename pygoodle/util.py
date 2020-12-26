@@ -4,16 +4,28 @@
 
 """
 
-from typing import Any, Callable, Dict, List, Iterable, Optional, Tuple, TypeVar
+# from abc import abstractmethod
+# from typing import Protocol
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, MutableSequence
+
+
+# class Comparable(Protocol):
+#     """Protocol for annotating comparable types."""
+#
+#     @abstractmethod
+#     def __lt__(self: 'CT', other: 'CT') -> bool:
+#         pass
+
 
 T = TypeVar('T')
+# CT = TypeVar('CT', bound=Comparable)
 
 
 def is_even(number: int) -> bool:
     return (number % 2) == 0
 
 
-def sorted_tuple(items: Iterable[T], unique: bool = False, reverse: bool = False,
+def sorted_tuple(items: MutableSequence[T], unique: bool = False, reverse: bool = False,
                  key: Optional[Callable] = None) -> Tuple[T, ...]:
     if unique:
         items = set(items)

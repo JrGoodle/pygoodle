@@ -73,10 +73,13 @@ class GitOffline:
         return cmd.get_stdout(f'git log -1 --format=%H --before={timestamp} {ref}', cwd=path)
 
     @classmethod
-    def install_lfs_hooks(cls, path: Path) -> CompletedProcess:
+    def install_lfs_hooks(cls, path: Path, local: bool = False) -> CompletedProcess:
         """Install git lfs hooks"""
 
-        return cmd.run('git lfs install --local', cwd=path)
+        args = ''
+        if local:
+            args = ' --local '
+        return cmd.run(f'git lfs install {args}', cwd=path)
 
     @classmethod
     def rename_remote(cls, path: Path, old_name: str, new_name: str) -> CompletedProcess:
@@ -125,12 +128,33 @@ class GitOffline:
         :return: True, if .git directory exists inside path
         """
 
-        return path.is_dir() and GitOffline.has_git_directory(path) and fs.has_contents(path)
+        git_dir = GitOffline.git_dir(path)
+        if git_dir is None:
+            return False
+        return git_dir.is_dir() and fs.has_contents(git_dir)
 
     @classmethod
     def is_dirty(cls, path: Path) -> bool:
-        result = cmd.run_silent(f'git diff-index --quiet {HEAD} --', cwd=path)
-        return result.returncode != 0
+        GitOffline.update_index(path, refresh=True)
+        changes = GitOffline.diff_index(path)
+        return changes is not None
+
+    @classmethod
+    def diff_index(cls, path: Path, treeish: str = HEAD) -> Optional[str]:
+        return cmd.get_stdout(f'git diff-index {treeish}', cwd=path)
+
+    @classmethod
+    def update_index(cls, path: Path, refresh: bool = False) -> CompletedProcess:
+        args = ''
+        if refresh:
+            args += ' --refresh '
+        return cmd.run_silent(f'git update-index {args}', path)
+
+    @classmethod
+    def get_diff_index_info(cls, path: Path) -> Dict[str, List[Dict[str, str]]]:
+        GitOffline.update_index(path, refresh=True)
+        output = GitOffline.diff_index(path)
+        return ProcessOutput.diff_index(output)
 
     @classmethod
     def is_rebase_in_progress(cls, path: Path) -> bool:
@@ -156,11 +180,11 @@ class GitOffline:
         return ProcessOutput.tag_shas(output)
 
     @classmethod
-    def get_untracked_files(cls, path: Path) -> List[str]:
+    def get_untracked_files(cls, path: Path) -> List[Path]:
         output = cmd.get_stdout('git ls-files . --exclude-standard --others', cwd=path)
         if output is None:
             return []
-        return output.split()
+        return [Path(line.strip()) for line in output.splitlines()]
 
     @classmethod
     def new_commits_count(cls, path: Path, upstream: bool = False) -> int:
@@ -177,8 +201,8 @@ class GitOffline:
             return 0
 
         try:
-            local_sha = GitOffline.get_branch_commit_sha(path, local_branch)
-            remote_sha = GitOffline.get_branch_commit_sha(path, upstream_branch[0], remote=upstream_branch[1])
+            local_sha = GitOffline.get_branch_sha(path, local_branch)
+            remote_sha = GitOffline.get_branch_sha(path, upstream_branch[0], remote=upstream_branch[1])
             commits = f'{local_sha}...{remote_sha}'
             output = cmd.get_stdout(f'git rev-list --count --left-right {commits}', cwd=path)
             if output is None:
@@ -194,78 +218,91 @@ class GitOffline:
         return bool(files)
 
     @classmethod
-    def has_git_directory(cls, path: Path) -> bool:
-        return Path(path / ".git").is_dir()
-
-    @classmethod
     def is_submodule_placeholder(cls, path: Path) -> bool:
         return path.is_dir() and fs.is_empty_dir(path)
 
     @classmethod
-    def get_submodule_commit(cls, path: Path, submodule_path: Path) -> Optional[str]:
-        output = cmd.get_stdout(f'git ls-tree master {submodule_path}', cwd=path)
-        if output is None:
-            return None
-        return output.split()[2]
+    def is_repo_submodule(cls, path: Path) -> bool:
+        parent_repo = GitOffline.find_parent_repo(path)
+        return parent_repo is not None
 
     @classmethod
-    def get_submodules_info(cls, path: Path) -> Dict[Path, Dict[str, str]]:
-        output = GitOffline.get_config_info(path, 'submodule', '.gitmodules')
-        submodules = ProcessOutput.submodules(output)
-        output = GitOffline.get_config_info(path, 'submodule', '.git/config')
-        git_config_submodules = ProcessOutput.submodules(output)
+    def find_parent_repo(cls, path: Path) -> Optional[Path]:
+        path = path.parent
+        while str(path) != path.root:
+            git_dir = path / '.git'
+            if git_dir.exists():
+                return path
+            path = path.parent
+
+    @classmethod
+    def get_submodule_commit(cls, path: Path, submodule_path: Path) -> Optional[str]:
+        output = cmd.get_stdout(f'git ls-tree {HEAD} {submodule_path}', cwd=path)
+        if output is None:
+            return None
+        components = output.split()
+        return components[2]
+
+    @classmethod
+    def get_submodules_info(cls, path: Path) -> Dict[str, Dict[str, str]]:
+        submodules = GitOffline.get_submodules_info_from_gitmodules(path)
+        git_config_submodules = GitOffline.get_submodules_info_from_git_config(path)
         for name, values in git_config_submodules.items():
+            if name not in submodules:
+                continue
             for key, value in values.items():
                 submodules[name][key] = value
         return submodules
 
     @classmethod
-    def get_submodules_info_from_gitmodules(cls, path: Path) -> Dict[Path, Dict[str, str]]:
-        output = GitOffline.get_config_info(path, 'submodule', '.gitmodules')
+    def get_submodules_info_from_gitmodules(cls, path: Path) -> Dict[str, Dict[str, str]]:
+        output = GitOffline.get_config_info(path, 'submodule', path / '.gitmodules')
         submodules = ProcessOutput.submodules(output)
         return submodules
 
     @classmethod
-    def get_submodules_info_from_git_config(cls, path: Path) -> Dict[Path, Dict[str, str]]:
-        output = GitOffline.get_config_info(path, 'submodule', '.gitmodules')
+    def get_submodules_info_from_git_config(cls, path: Path) -> Dict[str, Dict[str, str]]:
+        git_dir = GitOffline.git_dir(path)
+        if git_dir is None:
+            return {}
+        output = GitOffline.get_config_info(path, 'submodule', git_dir / 'config')
         submodules = ProcessOutput.submodules(output)
         return submodules
 
     @classmethod
-    def get_config_info(cls, path: Path, name: str, file: str) -> List[str]:
+    def get_config_info(cls, path: Path, name: str, file: Path) -> List[str]:
         output = cmd.get_stdout(f'git config --file {file} --get-regexp {name}', cwd=path)
         if output is None:
             return []
-        return output.split()
+        return output.splitlines()
 
     @classmethod
-    def get_submodule_git_dir(cls, path: Path) -> Optional[Path]:
-        git_file = path / '.git'
-        if not git_file.is_file():
+    def git_dir(cls, path: Path) -> Optional[Path]:
+        repo_git_path = path / '.git'
+        if not repo_git_path.exists():
             return None
-        git_contents = git_file.read_text()
-        git_path = Path(git_contents.split()[1])
-        git_path = git_file.parent / git_path
-        return git_path.resolve(strict=False)
+        if repo_git_path.is_dir():
+            return repo_git_path
+        contents = repo_git_path.read_text().strip()
+        gitdir_prefix = 'gitdir: '
+        if not contents.startswith(gitdir_prefix):
+            return None
+        git_dir_path = Format.remove_prefix(contents, gitdir_prefix)
+        git_dir = repo_git_path.parent / git_dir_path
+        return git_dir.resolve(strict=False)
 
     @classmethod
     def is_submodule_initialized(cls, path: Path, submodule_path: Path) -> bool:
-        if not GitOffline.repo_has_submodule(path, submodule_path):
-            return False
         submodules = GitOffline.get_submodules_info_from_git_config(path)
-        return submodule_path in submodules.keys()
+        return str(submodule_path) in submodules.keys()
 
     @classmethod
     def is_submodule_cloned(cls, path: Path, submodule_path: Path) -> bool:
-        if not GitOffline.is_submodule_initialized(path, submodule_path):
+        git_dir = GitOffline.git_dir(path)
+        if git_dir is None:
             return False
-        git_dir = GitOffline.get_submodule_git_dir(path)
-        return git_dir.is_dir() and fs.has_contents(git_dir)
-
-    @classmethod
-    def repo_has_submodule(cls, path: Path, submodule_path: Path) -> bool:
-        submodules = GitOffline.get_submodules_info_from_gitmodules(path)
-        return submodule_path in submodules.keys()
+        full_path = path / submodule_path
+        return git_dir.is_dir() and fs.has_contents(git_dir) and full_path.is_dir() and fs.has_contents(full_path)
 
     @classmethod
     def lfs_hooks_installed(cls, path: Path) -> bool:
@@ -277,8 +314,12 @@ class GitOffline:
         ]
 
         for hook in hooks:
-            result = cmd.run_silent(f"grep -m 1 '{hook[0]}' '{hook[1]}", cwd=path)
-            if result.returncode != 0:
+            command = hook[0]
+            file_path = path / hook[1]
+            if not file_path.exists():
+                return False
+            file_text = file_path.read_text()
+            if command not in file_text:
                 return False
         return True
 
@@ -298,7 +339,7 @@ class GitOffline:
         return True
 
     @classmethod
-    def uninstall_lfs_hooks_filters(cls, path: Path) -> List[CompletedProcess]:
+    def uninstall_lfs_hooks(cls, path: Path) -> List[CompletedProcess]:
         commands = [
             'git lfs uninstall --local',
             'git lfs uninstall --system',
@@ -309,11 +350,24 @@ class GitOffline:
         for command in commands:
             result = cmd.run_silent(command)
             results.append(result)
-        # result = cmd.run("git config --system --unset filter.lfs.clean", cwd=path)
-        # result = cmd.run("git config --system --unset filter.lfs.smudge", cwd=path)
-        # result = cmd.run("git config --system --unset filter.lfs.process", cwd=path)
-        # result = cmd.run("git config --system --unset filter.lfs.required", cwd=path)
+
         assert not GitOffline.lfs_hooks_installed(path)
+        return results
+
+    @classmethod
+    def uninstall_lfs_filters(cls, path: Path) -> List[CompletedProcess]:
+        commands = [
+            'git config --system --unset filter.lfs.clean',
+            'git config --system --unset filter.lfs.smudge',
+            'git config --system --unset filter.lfs.process',
+            'git config --system --unset filter.lfs.required'
+        ]
+
+        results = []
+        for command in commands:
+            result = cmd.run_silent(command)
+            results.append(result)
+
         assert not GitOffline.lfs_filters_installed(path)
         return results
 
@@ -358,14 +412,10 @@ class GitOffline:
         return cmd.get_stdout(f'git rev-parse {args} {HEAD}', cwd=path)
 
     @classmethod
-    def get_branch_commit_sha(cls, path: Path, branch: str, remote: Optional[str] = None) -> Optional[str]:
-        if remote is not None:
-            sha = cmd.get_stdout(f"git rev-parse {remote}/{branch}", cwd=path)
-        else:
-            sha = cmd.get_stdout(f"git rev-parse {branch}", cwd=path)
-        if sha is None or not sha:
-            return None
-        return sha
+    def get_branch_sha(cls, path: Path, branch: str, remote: Optional[str] = None,
+                       short: bool = False) -> Optional[str]:
+        branch = branch if remote is None else f'{remote}/{branch}'
+        return GitOffline.get_sha(path, ref=branch, short=short)
 
     @classmethod
     def add(cls, path: Path, files: List[str]) -> CompletedProcess:
@@ -377,15 +427,25 @@ class GitOffline:
         return cmd.run(f"git commit -m '{message}'", cwd=path)
 
     @classmethod
-    def create_local_branch(cls, path: Path, branch: str) -> CompletedProcess:
-        return cmd.run(f"git branch {branch} {HEAD}", cwd=path)
+    def create_local_branch(cls, path: Path, name: str, branch: Optional[str] = None,
+                            remote: Optional[str] = None, track: bool = True) -> CompletedProcess:
+        remote = '' if remote is None else f'{remote}/'
+        start_point = HEAD if branch is None else f'{remote}{branch}'
+
+        # TODO: Use a list for args and join with ' '
+        args = ''
+        if track:
+            args += ' --track '
+        else:
+            args += ' --no-track '
+        return cmd.run(f"git branch {args} {name} {start_point}", cwd=path)
 
     @classmethod
     def delete_local_branch(cls, path: Path, branch: str, force: bool = False) -> CompletedProcess:
         args = ''
         if force:
             args += ' --force '
-        return cmd.run(f"git branch --delete {branch}", cwd=path)
+        return cmd.run(f'git branch --delete {args} {branch}', cwd=path)
 
     @classmethod
     def delete_local_tag(cls, path: Path, name: str) -> CompletedProcess:
@@ -416,7 +476,7 @@ class GitOffline:
         return GitOffline.checkout(path, rev)
 
     @classmethod
-    def submodule_add(cls, path: Path, repo: str, branch: Optional[str] = None, force: bool = False,
+    def submodule_add(cls, path: Path, url: str, branch: Optional[str] = None, force: bool = False,
                       name: Optional[str] = None, reference: Optional[str] = None, depth: Optional[int] = None,
                       submodule_path: Optional[Path] = None) -> CompletedProcess:
         args = ''
@@ -434,7 +494,7 @@ class GitOffline:
             submodule_path = str(submodule_path)
         else:
             submodule_path = ''
-        return cmd.run(f'git submodule add {args} {repo} {submodule_path}', cwd=path)
+        return cmd.run(f'git submodule add {args} {url} {submodule_path}', cwd=path)
 
     @classmethod
     def submodule_absorbgitdirs(cls, path: Path, paths: Optional[List[Path]] = None) -> CompletedProcess:
@@ -520,6 +580,21 @@ class GitOffline:
         return cmd.run(f'git submodule status {args} {paths}', cwd=path)
 
     @classmethod
+    def has_ignored_files(cls, path: Path) -> bool:
+        ignored_files = GitOffline.check_ignore(path)
+        return bool(ignored_files)
+
+    @classmethod
+    def check_ignore(cls, path: Path) -> List[str]:
+        output = cmd.get_stdout('git check-ignore -v *', cwd=path)
+        if output is None:
+            return []
+        # TODO: Process output
+        # Expected output:
+        # .gitignore:1:ignored_file	ignored_file
+        return output.splitlines()
+
+    @classmethod
     def clean(cls, path: Path, untracked_directories: bool = False, force: bool = False,
               ignored: bool = False, untracked_files: bool = False) -> CompletedProcess:
         """Discard changes for repo
@@ -531,7 +606,7 @@ class GitOffline:
         :param bool untracked_files: ``x`` Remove all untracked files
         """
 
-        args = '-'
+        args = '-f'
         if untracked_directories:
             args += 'd'
         if force:
@@ -540,12 +615,12 @@ class GitOffline:
             args += 'X'
         if untracked_files:
             args += 'x'
-        args = '' if args == '-' else args
         return cmd.run(f"git clean {args}", cwd=path)
 
     @classmethod
-    def checkout(cls, path: Path, ref: str) -> CompletedProcess:
-        return cmd.run(f"git checkout {ref}", cwd=path)
+    def checkout(cls, path: Path, ref: str, track: bool = False) -> CompletedProcess:
+        track = ' --track ' if track else ''
+        return cmd.run(f"git -c advice.detachedHead=false checkout {track} {ref}", cwd=path)
 
     @classmethod
     def local_branch_exists(cls, path: Path, branch: str) -> bool:
@@ -558,13 +633,15 @@ class GitOffline:
         upstream_branches = {}
         for branch in local_branches:
             upstream_branch = GitOffline.get_upstream_branch(path, branch)
-            push_branch = GitOffline.get_push_branch(path, branch)
+            push_branch_info = GitOffline.get_push_branch(path, branch)
+            push_branch = None if push_branch_info is None else push_branch_info[0]
+            push_remote = None if push_branch_info is None else push_branch_info[1]
             if upstream_branch is not None:
                 upstream_branches[branch] = {
                     'upstream_branch': upstream_branch[0],
                     'upstream_remote': upstream_branch[1],
-                    'push_branch': push_branch[0],
-                    'push_remote': push_branch[1]
+                    'push_branch': push_branch,
+                    'push_remote': push_remote
                 }
         return upstream_branches
 
@@ -610,16 +687,19 @@ class GitOffline:
 
     @classmethod
     def current_branch(cls, path: Path) -> Optional[str]:
-        return cmd.get_stdout(f'git rev-parse --abbrev-ref {HEAD}', cwd=path)
+        branch = cmd.get_stdout(f'git rev-parse --abbrev-ref {HEAD}', cwd=path)
+        if branch is None:
+            return None
+        return Format.remove_prefix(branch, 'heads/')
 
     @classmethod
-    def set_upstream_branch(cls, path: Path, branch: str, upstream_branch: str,
+    def set_upstream_branch(cls, path: Path, local_branch: str, upstream_branch: str,
                             remote: Optional[str] = None) -> CompletedProcess:
         remote_arg = ''
         if remote is not None:
             remote_arg = f'{remote}/'
 
-        return cmd.run(f'git branch --set-upstream-to={remote_arg}{upstream_branch} {branch}', cwd=path)
+        return cmd.run(f'git branch --set-upstream-to={remote_arg}{upstream_branch} {local_branch}', cwd=path)
 
     @classmethod
     def git_config_unset_all_local(cls, path: Path, variable: str) -> CompletedProcess:
@@ -645,7 +725,8 @@ class GitOffline:
         :param str value: Git config value
         """
 
-        return cmd.run(f'git config --local --add {variable} {value}', cwd=path)
+        # TODO: Use Python ConfigParser for this
+        return cmd.run(f'git config --local --add "{variable}" "{value}"', cwd=path)
 
     @classmethod
     def is_detached(cls, path: Path) -> bool:
@@ -656,8 +737,11 @@ class GitOffline:
         return cmd.get_stdout(f'git rev-list -n 1 {tag}', cwd=path)
 
     @classmethod
-    def get_sha(cls, path: Path, ref: str = HEAD) -> Optional[str]:
-        return cmd.get_stdout(f'git rev-parse {ref}', cwd=path)
+    def get_sha(cls, path: Path, ref: str = HEAD, short: bool = False) -> Optional[str]:
+        args = ''
+        if short:
+            args = ' --short '
+        return cmd.get_stdout(f'git rev-parse {args} {ref}', cwd=path)
 
     @classmethod
     def number_of_commits_between_refs(cls, path: Path, first: str, second: str) -> int:
@@ -668,14 +752,25 @@ class GitOffline:
         return int(output)
 
     @classmethod
-    def reset(cls, path: Path, ref: str = HEAD, hard: bool = False) -> CompletedProcess:
+    def reset(cls, path: Path, ref: str = HEAD, hard: bool = False, mixed: bool = False,
+              soft: bool = False, merge: bool = False, keep: bool = False) -> CompletedProcess:
         args = ''
+        if sum([hard, mixed, soft, merge, keep]) > 1:
+            raise Exception('Only one of args hard, mixed, soft, merge, keep allowed to be true')
         if hard:
-            args = '--hard'
+            args = ' --hard '
+        if mixed:
+            args = ' --mixed '
+        if soft:
+            args = ' --soft '
+        if merge:
+            args = ' --merge '
+        if keep:
+            args = ' --keep '
         return cmd.run(f"git reset {args} {ref}", cwd=path)
 
     @classmethod
-    def reset_back_by_number_of_commits(cls, path: Path, number: int) -> CompletedProcess:
+    def reset_back(cls, path: Path, number: int) -> CompletedProcess:
         sha = GitOffline.current_head_commit_sha(path)
         result = cmd.run(f"git reset --hard {HEAD}~{number}", cwd=path)
         assert GitOffline.number_of_commits_between_refs(path, HEAD, sha) == number
@@ -731,7 +826,7 @@ class GitOffline:
 
     @classmethod
     def get_remote_branches_info(cls, path: Path, remote: str) -> Tuple[List[str], Optional[str]]:
-        output = cmd.get_stdout(f'git branch -r {remote}', cwd=path)
+        output = cmd.get_stdout(f'git branch -r', cwd=path)
         if output is None:
             return [], None
         return ProcessOutput.remote_branches(output, remote=remote)

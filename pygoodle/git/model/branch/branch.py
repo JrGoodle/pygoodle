@@ -48,7 +48,7 @@ class Branch(Ref):
 
     @property
     def is_tracking_branch(self) -> bool:
-        return False
+        return GitOffline.has_tracking_branch(self.path, self.name)
 
     def delete(self) -> None:
         raise NotImplementedError
@@ -70,10 +70,10 @@ class Branch(Ref):
 
         return self.format_git_branch(self.name)
 
-    def checkout(self, check: bool = True) -> None:
+    def checkout(self, check: bool = True, track: bool = False) -> None:
         current_branch = GitOffline.current_branch(self.path)
         if current_branch == self.name:
             CONSOLE.stdout(f' - Branch {Format.Git.ref(self.short_ref)} already checked out')
             return
         CONSOLE.stdout(f' - Checkout branch {Format.Git.ref(self.short_ref)}')
-        super().checkout(check=check)
+        super().checkout(check=check, track=track)

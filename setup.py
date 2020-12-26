@@ -25,8 +25,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Operating System :: MacOS',
         'Operating System :: POSIX :: Linux',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools'
+        'Intended Audience :: Developers'
     ],
     packages=find_packages(exclude=['tests.*']),
     install_requires=[

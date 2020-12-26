@@ -108,31 +108,28 @@ class Format:
         return humanize.naturalsize(size, gnu=True)
 
     @classmethod
-    def path(cls, path: Path) -> str:
-        return Format.cyan(str(path))
+    def path(cls, path: Path, relative_to: Optional[Path] = None) -> str:
+        import pygoodle.filesystem as fs
+        if relative_to is not None and fs.is_relative_to(path, relative_to):
+            path = path.relative_to(relative_to)
+        return Format.cyan(path)
 
     @classmethod
-    def _format_yaml_symlink(cls, symlink: Path) -> str:
+    def symlink(cls, symlink: Path, relative_to: Optional[Path] = None, source: Optional[Path] = None) -> str:
         """Return formatted string for yaml symlink
 
         :param Path symlink: Yaml symlink
+        :param Optional[Path] relative_to: Path to format symlink relative to
+        :param Optional[Path] source: Manually specify source
         :return: Formatted string for yaml symlink
         """
 
-        assert symlink.is_symlink()
-        return f"\n{Format.path(symlink)} -> {Format.path(symlink.resolve())}\n"
-
-    @classmethod
-    def _format_yaml_file(cls, path: Path, relative_to: Optional[Path]) -> str:
-        """Return formatted string for yaml file
-
-        :param Path path: Yaml file path
-        :return: Formatted string for yaml file
-        """
-
-        if relative_to is not None:
-            path = path.resolve().relative_to(relative_to)
-        return f"\n{Format.path(path)}\n"
+        target_output = Format.path(symlink, relative_to=relative_to)
+        if source is None:
+            source_output = Format.path(symlink.resolve(), relative_to=relative_to)
+        else:
+            source_output = Format.path(source, relative_to=relative_to)
+        return f'{target_output} -> {source_output}'
 
     @classmethod
     def get_lines(cls, path: Path) -> List[str]:
