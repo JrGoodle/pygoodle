@@ -22,12 +22,12 @@ def list_subdirectories(path: Path, recursive: bool = False) -> List[Path]:
         return [f.path for f in paths if f.is_dir()]
 
 
-def find_rar(directory: Path) -> Optional[Path]:
-    files = os.listdir(directory)
-    files = [directory / f for f in files if f.endswith('.rar')]
-    if not files:
-        return
-    return files[0]
+def find_rars(directory: Path) -> List[Path]:
+    all_rar_files = []
+    for root, dirs, files in os.walk(directory):
+        rar_files = [Path(root, f) for f in files if f.endswith('.rar')]
+        all_rar_files += rar_files
+    return all_rar_files
 
 
 def make_dir(dir_path: Path, exist_ok: bool = False) -> Path:
