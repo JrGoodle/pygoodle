@@ -7,6 +7,7 @@
 # import errno
 import fnmatch
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import List, Optional
@@ -22,11 +23,22 @@ def list_subdirectories(path: Path, recursive: bool = False) -> List[Path]:
         return [f.path for f in paths if f.is_dir()]
 
 
-def find_rars(directory: Path) -> List[Path]:
+def find_rars(directory: Path, match_all: bool = False) -> List[Path]:
     all_rar_files = []
     for root, dirs, files in os.walk(directory):
         rar_files = [Path(root, f) for f in files if f.endswith('.rar')]
-        all_rar_files += rar_files
+        if match_all:
+            all_rar_files += rar_files
+            continue
+        tmp_files = []
+        for file in rar_files:
+            if file.name[:-4] in dirs:
+                continue
+            tmp_files.append(file)
+            r = re.compile(r"^.+[.]part[0-9][0-9][.]rar$")
+            if all(r.match(f.name) for f in rar_files):
+                break
+        all_rar_files += tmp_files
     return all_rar_files
 
 
