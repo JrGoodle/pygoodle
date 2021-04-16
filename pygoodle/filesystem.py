@@ -35,7 +35,7 @@ def find_rars(directory: Path, match_all: bool = False) -> List[Path]:
             if file.name[:-4] in dirs:
                 continue
             tmp_files.append(file)
-            r = re.compile(r"^.+[.]part[0-9][0-9][.]rar$")
+            r = re.compile(r"^.+[.]part[0-9][0-9][0-9]?[.]rar$")
             if all(r.match(f.name) for f in rar_files):
                 break
         all_rar_files += tmp_files
