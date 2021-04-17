@@ -86,7 +86,8 @@ def listdir_matching(directory: Path, pattern: str) -> List[Path]:
 
 
 def unar(file: Path) -> None:
-    cmd.run(f"unar '{file}'", cwd=file.parent)
+    escaped_file_name = str(file).replace("'", r"\'")
+    cmd.run(f"unar '{escaped_file_name}'", cwd=file.parent)
 
 
 def create_backup_file(file: Path) -> None:
