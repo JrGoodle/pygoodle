@@ -10,7 +10,7 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import pygoodle.command as cmd
 
@@ -20,7 +20,15 @@ def list_subdirectories(path: Path, recursive: bool = False) -> List[Path]:
         return [Path(info[0]) for info in os.walk(path)]
     else:
         paths = [Path(str(p)) for p in os.scandir(path)]
-        return [f.path for f in paths if f.is_dir()]
+        return [f for f in paths if f.is_dir()]
+
+
+def find_files_with_extension(directory: Path, extension: str) -> List[Path]:
+    all_files = []
+    for root, _, files in os.walk(directory):
+        files = [Path(root, f) for f in files if f.endswith(f'.{extension}')]
+        all_files += files
+    return all_files
 
 
 def find_rars(directory: Path, match_all: bool = False) -> List[Path]:
