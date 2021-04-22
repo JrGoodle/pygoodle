@@ -26,8 +26,26 @@ def list_subdirectories(path: Path, recursive: bool = False) -> List[Path]:
 def find_files_with_extension(directory: Path, extension: str) -> List[Path]:
     all_files = []
     for root, _, files in os.walk(directory):
-        files = [Path(root, f) for f in files if f.endswith(f'.{extension}')]
-        all_files += files
+        matching_files = [Path(root, f) for f in files if f.endswith(f'.{extension}')]
+        all_files += matching_files
+    return all_files
+
+
+def find_files(directory: Path, name: str) -> List[Path]:
+    all_files = []
+    for root, dirs, files in os.walk(directory):
+        matching_files = [Path(root, f) for f in files if f == name]
+        matching_dirs = [Path(root, d) for d in dirs if d == name]
+        all_files += (matching_files + matching_dirs)
+    return all_files
+
+
+def find_files_containing_match(directory: Path, match: str) -> List[Path]:
+    all_files = []
+    for root, dirs, files in os.walk(directory):
+        matching_files = [Path(root, f) for f in files if f.contains(match)]
+        matching_dirs = [Path(root, d) for d in dirs if d.contains(match)]
+        all_files += (matching_files + matching_dirs)
     return all_files
 
 
