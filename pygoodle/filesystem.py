@@ -43,8 +43,8 @@ def find_files(directory: Path, name: str) -> List[Path]:
 def find_files_containing_match(directory: Path, match: str) -> List[Path]:
     all_files = []
     for root, dirs, files in os.walk(directory):
-        matching_files = [Path(root, f) for f in files if f.contains(match)]
-        matching_dirs = [Path(root, d) for d in dirs if d.contains(match)]
+        matching_files = [Path(root, f) for f in files if match.lower() in f.lower()]
+        matching_dirs = [Path(root, d) for d in dirs if match.lower() in d.lower()]
         all_files += (matching_files + matching_dirs)
     return all_files
 
