@@ -105,6 +105,11 @@ def replace_path_prefix(path: Path, old_prefix: Path, new_prefix: Path):
     return new_prefix / relative_path
 
 
+def listdir(directory: Path) -> List[Path]:
+    files = os.listdir(directory)
+    return [directory / f for f in files]
+
+
 def listdir_matching(directory: Path, pattern: str) -> List[Path]:
     files = os.listdir(directory)
     matches = fnmatch.filter(files, pattern)
