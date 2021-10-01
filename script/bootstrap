@@ -44,5 +44,5 @@ run git lfs install
 
 if [ -z ${CI+x} ]; then
     h1 'Install Python versions'
-    run pyenv install --skip-existing
+    run pyenv install --skip-existing 3.7.10
 fi
