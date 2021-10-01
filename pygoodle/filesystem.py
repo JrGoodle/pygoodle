@@ -245,7 +245,18 @@ def is_relative_symlink_from_to(symlink: Path, destination: str) -> bool:
     return is_relative
 
 
-def copy_directory(from_dir: Path, to: Path):
+def copy_directory(from_dir: Path, to_path: Path):
     # TODO: Replace rmdir() with copytree(dirs_exist_ok=True) when support for Python 3.7 is dropped
-    to.rmdir()
-    shutil.copytree(from_dir, to, symlinks=True)
+    to_path.rmdir()
+    shutil.copytree(from_dir, to_path, symlinks=True)
+
+
+def copy_file(from_path: Path, to_path: Path):
+    shutil.copyfile(from_path, to_path)
+
+
+def copy(from_path: Path, to_path: Path):
+    if from_path.is_dir():
+        copy_directory(from_path, to_path)
+    else:
+        copy_file(from_path, to_path)
