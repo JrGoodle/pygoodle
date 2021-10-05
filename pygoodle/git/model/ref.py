@@ -65,7 +65,7 @@ class Ref:
     def date(self) -> Optional[datetime]:
         """Formatted git ref"""
 
-        raise GitOffline.get_commit_date(self.path, self.sha)
+        return GitOffline.get_commit_date(self.path, self.sha)
 
     @staticmethod
     def truncate_ref(ref: str) -> str:
