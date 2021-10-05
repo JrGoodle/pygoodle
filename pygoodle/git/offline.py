@@ -1,5 +1,6 @@
 """Misc git utils"""
 
+from datetime import datetime
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
 from typing import Dict, List, Optional, Tuple
@@ -826,7 +827,15 @@ class GitOffline:
 
     @classmethod
     def get_remote_branches_info(cls, path: Path, remote: str) -> Tuple[List[str], Optional[str]]:
-        output = cmd.get_stdout(f'git branch -r', cwd=path)
+        output = cmd.get_stdout('git branch -r', cwd=path)
         if output is None:
             return [], None
         return ProcessOutput.remote_branches(output, remote=remote)
+
+    @classmethod
+    def get_commit_date(cls, path: Path, commit: str) -> Optional[datetime]:
+        output = cmd.get_stdout(f'git show -s --format=%ci {commit}', cwd=path)
+        if output is None:
+            return None
+        date = datetime.strptime(output, '%Y-%m-%d %H:%M:%S %z')
+        return date

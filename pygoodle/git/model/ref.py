@@ -4,6 +4,7 @@
 
 """
 
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -59,6 +60,12 @@ class Ref:
         """Formatted git ref"""
 
         raise NotImplementedError
+
+    @property
+    def date(self) -> Optional[datetime]:
+        """Formatted git ref"""
+
+        raise GitOffline.get_commit_date(self.path, self.sha)
 
     @staticmethod
     def truncate_ref(ref: str) -> str:
