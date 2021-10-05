@@ -22,6 +22,7 @@ from .branch.tracking_branch import TrackingBranch
 from .protocol import Protocol
 from .ref import Ref
 from .remote import Remote
+from .tag.local_tag import LocalTag
 from .tag.remote_tag import RemoteTag
 
 if TYPE_CHECKING:
@@ -144,7 +145,11 @@ class Repo:
             return GitFactory.get_remote_branch_online(self.path, branch=branch, remote=remote, url=url)
         return GitFactory.get_remote_branch_offline(self.path, branch=branch, remote=remote)
 
-    def get_local_tag(self, tag: str, ) -> Optional[RemoteTag]:
+    def get_local_tags(self) -> List[LocalTag]:
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_local_tags(self.path)
+
+    def get_local_tag(self, tag: str) -> Optional[LocalTag]:
         from pygoodle.git.model.factory import GitFactory
         return GitFactory.get_local_tag(self.path, tag)
 
@@ -162,6 +167,12 @@ class Repo:
         remote = ORIGIN if remote is None else remote
         from pygoodle.git.model.factory import GitFactory
         return GitFactory.get_remote_tag(self.path, tag, remote, url=url)
+
+    def get_remote_tags(self, remote: Optional[str] = None,
+                        url: Optional[str] = None) -> List[RemoteTag]:
+        remote = ORIGIN if remote is None else remote
+        from pygoodle.git.model.factory import GitFactory
+        return GitFactory.get_remote_tags(self.path, remote, url=url)
 
     def get_remote(self, remote: Optional[str] = None, fetch_url: Optional[str] = None,
                    push_url: Optional[str] = None) -> Optional[Remote]:
