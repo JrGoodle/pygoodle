@@ -4,6 +4,7 @@
 set -euo pipefail
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 . 'script/utils.sh'
+. 'script/git_utils.sh'
 
 entry_point='pygoodle'
 package_name='pygoodle'
