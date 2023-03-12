@@ -142,10 +142,13 @@ class App:
             else:
                 action = command_help
             command_parser.set_defaults(func=action)
-            version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
-            self._add_parser_arguments(command_parser, [
-                Argument('-v', '--version', action='version', version=version_message, metavar=None)
-            ])
+            try:
+                version_message = f"{self.entry_point} version {pkg_resources.require(self.name)[0].version}"
+                self._add_parser_arguments(command_parser, [
+                    Argument('-v', '--version', action='version', version=version_message, metavar=None)
+                ])
+            except:
+                pass
 
             if self.args:
                 self._add_parser_arguments(command_parser, self.args)
